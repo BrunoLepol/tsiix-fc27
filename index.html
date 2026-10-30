@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style id="appstyle">
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
---bg:#eef2f9;--panel:#fff;--line:#cdd6e6;--text:#14213a;--muted:#5a6784;--accent:#1565d8;--gold:#b5830a;--win:#1a8f4c;--loss:#c93a3a;--draw:#7a8499;color-scheme:light}
+--bg:#080f1d;--panel:#111d31;--line:#263955;--text:#f4f8ff;--muted:#9aacc7;--accent:#2585ff;--gold:#f4c95d;--win:#35d39a;--loss:#ff6b78;--draw:#a4b2c8;color-scheme:dark}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a2e;--panel:#172540;--line:#2a3c5f;--text:#e8edf7;--muted:#97a6c4;--accent:#4cc9f0;--gold:#f5c451;--win:#4ade80;--loss:#f87171;--draw:#97a6c4;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1a2e;--panel:#172540;--line:#2a3c5f;--text:#e8edf7;--muted:#97a6c4;--accent:#4cc9f0;--gold:#f5c451;--win:#4ade80;--loss:#f87171;--draw:#97a6c4;color-scheme:dark}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
@@ -98,6 +98,36 @@ nav{white-space:nowrap;overflow-x:auto}
 footer{border-top:1px solid var(--line);color:var(--muted);padding:24px 0 40px;font-size:14px}
 .row label{display:flex;gap:6px;align-items:center;font-size:15px}
 .adminbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line);font-size:14px}.adminbar span{flex:1;min-width:200px}
+/* TSIIX identity refresh: dark navy, electric blue and white */
+body{background:radial-gradient(ellipse at 50% -18%,rgba(37,133,255,.16),transparent 42%),var(--bg)}
+header.top{background:rgba(8,15,29,.94);border-bottom:1px solid rgba(67,112,170,.28);box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.logo{font-size:29px;letter-spacing:.045em;color:#fff;text-transform:uppercase}
+.logo span{color:#55a5ff}
+.hero{padding:64px 0 44px}
+.hero h1{font-size:clamp(48px,9vw,96px);line-height:.94;letter-spacing:.015em;text-transform:uppercase;color:#fff;text-wrap:balance;max-width:13ch}
+.hero h1:after{content:"";display:block;width:76px;height:5px;margin-top:20px;border-radius:8px;background:linear-gradient(90deg,#2585ff,#70c4ff)}
+.hero p{color:#a9bad3;font-size:17px;max-width:58ch}
+.kpis{background:#263955;border-color:#263955;border-radius:14px;overflow:hidden;gap:1px;box-shadow:0 14px 36px rgba(0,0,0,.18)}
+.kpi{background:linear-gradient(145deg,#14243d,#101b2e);padding:19px 20px}
+.kpi .num{color:#fff}
+section{padding:38px 0}
+h2{color:#f4f8ff;letter-spacing:.015em}
+.card,.rep,.aw,.table{border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.14)}
+.card{background:linear-gradient(155deg,#14243c,#101a2c);border-color:#293d5c}
+.table{background:#101b2e;border-color:#293d5c;overflow:hidden}
+th{background:#172842;color:#b8c8df}
+th,td{border-bottom-color:#263955}
+.tabs button{border-radius:9px}
+.tabs button[aria-pressed="true"]{background:#2585ff;border-color:#2585ff;box-shadow:0 5px 16px rgba(37,133,255,.24)}
+.tabbar{border-bottom-color:#263955}
+.tabbar button[aria-selected="true"]{color:#fff;border-bottom-color:#4da0ff}
+textarea,input,select{background:#0e192b;border-color:#304663;color:#f4f8ff;border-radius:9px}
+textarea:focus,input:focus,select:focus{outline:2px solid rgba(77,160,255,.55);outline-offset:1px}
+button.pri{background:linear-gradient(135deg,#2585ff,#1767d5);border-radius:9px;box-shadow:0 5px 16px rgba(37,133,255,.2)}
+button.ghost{border-color:#385273;color:#c2d1e5;border-radius:9px}
+footer{border-top-color:#263955}
+@media(max-width:640px){.hero{padding:44px 0 30px}.hero h1{font-size:clamp(44px,13vw,68px)}.wrap{padding-left:16px;padding-right:16px}}
+
 </style>
 </head>
 <body>
@@ -112,7 +142,7 @@ footer{border-top:1px solid var(--line);color:var(--muted);padding:24px 0 40px;f
 <div class="wrap"><nav id="tabbar" class="tabbar" role="tablist" aria-label="Seções do site"></nav></div>
 <main class="wrap">
   <div class="hero" data-tab="geral">
-    <h1>Time de FC27 em números</h1>
+    <h1>TSIIX E-SPORTS</h1>
     <p>Desempenho do elenco e do time da TSIIX ESPORTS: atributos, gols, assistências e resultados recentes.</p>
     <div class="kpis" id="kpis"></div>
   </div>
