@@ -626,6 +626,28 @@ function buildPdf(ms,res,det,crest){
   const rt=(x,z)=>z?Math.round(x/z*100)+"%":"-";
   const ds=ms.filter(m=>m.ts).map(m=>m.ts),per=ds.length?fd(Math.min(...ds))+" a "+fd(Math.max(...ds)):"sem data";
   const R=repData(ms),form=ms.map(resOf).join(" ");
+  const posOrder=["Goleiro","Defensor","Meio-campo","Atacante"];
+  const posNames={Goleiro:"GOLEIROS",Defensor:"DEFESA", "Meio-campo":"MEIO-CAMPO",Atacante:"ATAQUE"};
+  const avg=p=>p.j?p.n/p.j:0;
+  // MVP: 40% rating médio, 30% MoM por jogo e 30% participações em gols por jogo.
+  // Os componentes por jogo reduzem a vantagem de quem disputou mais partidas.
+  const mvpScore=p=>40*(avg(p)/10)+30*Math.min(1,p.mom/Math.max(1,p.j))+30*Math.min(1,(p.g+p.a)/Math.max(1,p.j*1.5));
+  const eligible=R.ag.filter(p=>p.j>=3);
+  const mvp=eligible.slice().sort((a,b)=>mvpScore(b)-mvpScore(a)||avg(b)-avg(a))[0]||null;
+  const minTs=Math.min(...ms.filter(m=>m.ts).map(m=>m.ts));
+  const maxTs=Math.max(...ms.filter(m=>m.ts).map(m=>m.ts));
+  const span=Number.isFinite(minTs)&&Number.isFinite(maxTs)?Math.max(86400,maxTs-minTs+86400):0;
+  const previous=span&&typeof STATE!=="undefined"?STATE.matches.filter(m=>m.ts&&m.ts>=minTs-span&&m.ts<minTs):[];
+  const prevAg=aggregate(previous);
+  const prevByName=Object.fromEntries(prevAg.map(p=>[p.nome,p]));
+  const thermometer=R.ag.map(p=>{
+    const old=prevByName[p.nome],delta=old&&old.j>=3?avg(p)-avg(old):null;
+    let status="Regular";
+    if(p.j>=3&&delta!==null&&delta>=.3)status="Em evolução";
+    else if(p.j>=3&&avg(p)>=8)status="Em grande fase";
+    else if(p.j>=3&&avg(p)<6.5)status="Atenção";
+    return {...p,status,delta};
+  }).sort((a,b)=>posOrder.indexOf(posOf(a))-posOrder.indexOf(posOf(b))||avg(b)-avg(a));
   let y=M;
   const sec=txt=>{if(y>H-125){doc.addPage();y=M}doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text(t(txt),M,y);y+=9;doc.setDrawColor(...ACC);doc.setLineWidth(2);doc.line(M,y,M+42,y);y+=15};
   const tbl=(head,body,opt)=>{if(!body.length)return;doc.autoTable(Object.assign({startY:y,head:[head.map(t)],body:body.map(r=>r.map(c=>t(c))),margin:{left:M,right:M,bottom:38},styles:{font:"helvetica",fontSize:8.2,cellPadding:4,textColor:[27,39,59],lineColor:[220,226,236],lineWidth:.35},headStyles:{fillColor:NAVY,textColor:255,fontStyle:"bold"},alternateRowStyles:{fillColor:[241,245,251]},didDrawPage:()=>{}},opt||{}));y=doc.lastAutoTable.finalY+16};
@@ -652,13 +674,46 @@ function buildPdf(ms,res,det,crest){
     const l=ms.filter(m=>m.t1&&m.t1.nota>0),notaT=l.length?(l.reduce((s,m)=>s+m.t1.nota,0)/l.length).toFixed(1):"-";
     const rows=[["Partidas analisadas",R.n],["Vitórias / empates / derrotas",R.v+" / "+R.e+" / "+R.d],["Gols marcados / sofridos",R.gp+" / "+R.gc],["Média de gols por partida",(R.gp/R.n).toFixed(2)+" marcados / "+(R.gc/R.n).toFixed(2)+" sofridos"],["Saldo de gols",(R.gp-R.gc>0?"+":"")+(R.gp-R.gc)],["Aproveitamento (3 pontos por vitória)",R.apr+"%"],["Partidas sem sofrer gols",ms.filter(m=>m.contra===0).length],["Sequência de resultados (antigo → recente)",form],["Chutes",R.sh],["Passes certos",rt(R.pm,R.pa)],["Desarmes certos",rt(R.tm,R.ta)],["Defesas do goleiro",R.sv],["Cartões vermelhos",R.rc],["Nota média do time",notaT]];
     tbl(["Indicador","Resultado"],rows,{columnStyles:{0:{cellWidth:235}}});
-    if(R.aw.length){sec("2. Destaques do período");tbl(["Reconhecimento","Jogador","Indicador"],R.aw)}
-    const posGroups={};R.ag.forEach(p=>{const k=posOf(p);(posGroups[k]=posGroups[k]||[]).push(p)});
-    const posRows=Object.keys(posGroups).sort(ordCmp).map(k=>{const a=posGroups[k],j=a.reduce((s,p)=>s+p.j,0),g=a.reduce((s,p)=>s+p.g,0),ast=a.reduce((s,p)=>s+p.a,0),mins=a.reduce((s,p)=>s+p.min,0),nota=a.reduce((s,p)=>s+p.n,0);return [LBL[k]||k,a.length,j,g,ast,(j?nota/j:0).toFixed(1),mins]});
-    if(posRows.length){sec("3. Desempenho por posição");tbl(["Posição","Atletas","Jogos","Gols","Assist.","Nota média","Minutos"],posRows)}
+    sec("2. Premiações da semana");
+    const awardRows=[];
+    if(mvp)awardRows.push(["MVP DA SEMANA",mvp.nome,"Nota "+avg(mvp).toFixed(1)+" | "+mvp.mom+" MoM | "+(mvp.g+mvp.a)+" participações em gols","Pontuação "+mvpScore(mvp).toFixed(1)+"/100"]);
+    const byPosMvp=[ ["Melhor da defesa",["Goleiro","Defensor"]],["Melhor do meio",["Meio-campo"]],["Melhor do ataque",["Atacante"]] ];
+    byPosMvp.forEach(([label,positions])=>{const p=eligible.filter(x=>positions.includes(posOf(x))).sort((a,b)=>mvpScore(b)-mvpScore(a))[0];if(p)awardRows.push([label,p.nome,"Nota "+avg(p).toFixed(1)+" | "+p.mom+" MoM",(p.g+p.a)+" participações em gols"])});
+    const topStat=(label,key,unit)=>{const max=Math.max(0,...R.ag.map(p=>p[key]));if(max>0)awardRows.push([label,R.ag.filter(p=>p[key]===max).map(p=>p.nome).join(", "),max+" "+unit,""]);};
+    topStat("Artilheiro","g","gols");topStat("Garçom","a","assistências");topStat("Mais passes certos","pm","passes");
+    if(awardRows.length)tbl(["Reconhecimento","Jogador(es)","Desempenho","Pontuação / marca"],awardRows);
+
+    sec("3. Desempenho por posição");
+    const posColumns={
+      Goleiro:["Jogador","Jogos","Nota","Defesas","Gols sofridos","Sem sofrer gol","MoM","Min."],
+      Defensor:["Jogador","Jogos","Nota","Desarmes","Passes","Gols","Assist.","MoM"],
+      "Meio-campo":["Jogador","Jogos","Nota","Passes","Assist.","Gols","Chutes","MoM"],
+      Atacante:["Jogador","Jogos","Nota","Gols","Assist.","Chutes","Passes","MoM"]
+    };
+    posOrder.forEach(pos=>{
+      const players=R.ag.filter(p=>posOf(p)===pos).sort((a,b)=>avg(b)-avg(a));
+      if(!players.length)return;
+      sec(posNames[pos]+"  |  MÉDIA "+(players.reduce((s,p)=>s+avg(p),0)/players.length).toFixed(1));
+      const rows=players.map(p=>{
+        if(pos==="Goleiro")return [p.nome,p.j,avg(p).toFixed(1),p.sv,p.gc,p.cs,p.mom,p.min];
+        if(pos==="Defensor")return [p.nome,p.j,avg(p).toFixed(1),rt(p.tm,p.ta),rt(p.pm,p.pa),p.g,p.a,p.mom];
+        if(pos==="Meio-campo")return [p.nome,p.j,avg(p).toFixed(1),rt(p.pm,p.pa),p.a,p.g,p.sh,p.mom];
+        return [p.nome,p.j,avg(p).toFixed(1),p.g,p.a,p.sh,rt(p.pm,p.pa),p.mom];
+      });
+      tbl(posColumns[pos],rows,{styles:{fontSize:7.6,cellPadding:3.5},columnStyles:{0:{cellWidth:118}}});
+    });
     const ag=R.ag.slice().sort((a,b)=>ordCmp(posOf(a),posOf(b))||b.g-a.g||b.a-a.a);
-    if(ag.length){sec("4. Desempenho individual");tbl(["Jogador","Posição","Jogos","Gols","Assist.","Nota","Chutes","Passes","Desarmes","Melhor"],ag.map(p=>[p.nome,posOf(p),p.j,p.g,p.a,(p.n/p.j).toFixed(1),p.sh,rt(p.pm,p.pa),rt(p.tm,p.ta),p.mom]))}
-    sec("5. Resultados das partidas");
+    if(ag.length){sec("4. Ranking individual geral");tbl(["Jogador","Posição","Jogos","Gols","Assist.","Nota","Chutes","Passes","Desarmes","MoM"],ag.map(p=>[p.nome,posOf(p),p.j,p.g,p.a,avg(p).toFixed(1),p.sh,rt(p.pm,p.pa),rt(p.tm,p.ta),p.mom]))}
+
+    sec("5. Termômetro do elenco");
+    const thermRows=thermometer.map(p=>[p.nome,posOf(p),p.j,avg(p).toFixed(1),p.status,p.delta===null?"Histórico insuficiente":(p.delta>0?"+":"")+p.delta.toFixed(1)]);
+    if(thermRows.length)tbl(["Jogador","Posição","Jogos","Nota média","Avaliação","Variação"],thermRows);
+    if(y>H-90){doc.addPage();y=M}
+    doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(...MUT);
+    const note="Termômetro: mínimo de 3 partidas. Grande fase: nota média >= 8,0; Em evolução: aumento >= 0,3 na nota média frente ao período anterior comparável (também com mínimo de 3 jogos); Atenção: nota média < 6,5; demais casos: Regular. Sem histórico comparável, a variação não é calculada. MVP: 40% nota média, 30% MoM por jogo e 30% participações em gols por jogo.";
+    const noteLines=doc.splitTextToSize(t(note),W-2*M);doc.text(noteLines,M,y);y+=noteLines.length*9+12;
+
+    sec("6. Resultados das partidas");
     tbl(["Data","Hora","Adversário","Placar","Resultado"],ms.map(m=>[fd(m.ts),hr(m.ts),m.adv,m.pro+" x "+m.contra,RN[resOf(m)]]),{didParseCell:d=>{if(d.section==="body"&&d.column.index===4){const v=d.cell.raw;d.cell.styles.textColor=v==="Vitória"?[26,143,76]:v==="Derrota"?[201,58,58]:[122,132,153];d.cell.styles.fontStyle="bold"}}});
   }
   if(det)ms.forEach((m,i)=>{
