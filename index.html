@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TSIIX ESPORTS – Elenco e estatísticas FC27</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style id="appstyle">
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#080f1d;--panel:#111d31;--line:#263955;--text:#f4f8ff;--muted:#9aacc7;--accent:#2585ff;--gold:#f4c95d;--win:#35d39a;--loss:#ff6b78;--draw:#a4b2c8;color-scheme:dark}
@@ -97,6 +98,11 @@ nav{white-space:nowrap;overflow-x:auto}
 .bar i{display:block;height:100%;background:var(--muted);border-radius:4px}.bar i.w{background:var(--accent)}
 footer{border-top:1px solid var(--line);color:var(--muted);padding:24px 0 40px;font-size:14px}
 .row label{display:flex;gap:6px;align-items:center;font-size:15px}
+.loginbox{max-width:420px;margin:36px auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px}
+.loginbox h2{font-size:30px;margin:14px 0 6px}
+.fld{display:block;margin-top:14px;font-size:14px;color:var(--muted)}.fld input{display:block;width:100%;margin-top:6px}
+.pw{display:flex;gap:8px;margin-top:6px}.pw input{flex:1;margin:0}
+.loginbox .wide{width:100%;margin-top:18px}
 .adminbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 20px;background:var(--panel);border-bottom:1px solid var(--line);font-size:14px}.adminbar span{flex:1;min-width:200px}
 /* TSIIX identity refresh: dark navy, electric blue and white */
 body{background:radial-gradient(ellipse at 50% -18%,rgba(37,133,255,.16),transparent 42%),var(--bg)}
@@ -137,7 +143,7 @@ footer{border-top-color:#263955}
   <nav><a href="#importar">Importar</a><a href="#biblioteca">Partidas</a><a href="#time">Time</a><a href="#forma">Forma</a><a href="#destaques">Destaques</a><a href="#elenco">Elenco</a><a href="#resultados">Resultados</a><a href="#comparar">Comparar</a></nav>
 </div></header>
 
-<div id="adminbar" class="adminbar" hidden><span id="admsg"></span><button class="pri" id="pub">Publicar alterações</button><button class="ghost" id="disc">Descartar rascunho</button></div>
+<div id="adminbar" class="adminbar" hidden><span id="admsg"></span><button class="ghost" id="logout">Sair</button></div>
 <div class="wrap modo"><label>Modalidade&nbsp;<select id="modo" aria-label="Modalidade analisada"><option>Amistoso</option><option>Liga</option><option>Playoff</option><option>Todas</option></select></label></div>
 <div class="wrap"><nav id="tabbar" class="tabbar" role="tablist" aria-label="Seções do site"></nav></div>
 <main class="wrap">
@@ -147,7 +153,52 @@ footer{border-top-color:#263955}
     <div class="kpis" id="kpis"></div>
   </div>
 
-  <section id="importar" data-tab="dados">
+  <section id="login" data-tab="dados" data-pub="1">
+    <div class="loginbox">
+      <div class="logo">TSIIX<span> ESPORTS</span></div>
+      <h2>Área do administrador</h2>
+      <p class="hint">Entre para cadastrar jogadores e alimentar os relatórios. A sessão fica salva neste aparelho até você clicar em Sair.</p>
+      <label class="fld">Usuário (e-mail)<input id="lemail" type="email" autocomplete="username" placeholder="seu@email.com"></label>
+      <label class="fld">Senha<span class="pw"><input id="lsenha" type="password" autocomplete="current-password" placeholder="Sua senha"><button type="button" class="ghost" id="lshow" aria-pressed="false">Mostrar</button></span></label>
+      <button class="pri wide" id="lgo">Entrar</button>
+      <p id="lmsg" role="status" style="color:var(--muted);min-height:1.5em"></p>
+      <button type="button" class="ghost" id="lforgot">Esqueci a senha</button>
+    </div>
+  </section>
+
+  <section id="recovery" data-tab="dados" data-rec="1">
+    <div class="loginbox">
+      <h2>Criar nova senha</h2>
+      <label class="fld">Nova senha<input id="lpw1" type="password" autocomplete="new-password"></label>
+      <label class="fld">Repita a nova senha<input id="lpw2" type="password" autocomplete="new-password"></label>
+      <button class="pri wide" id="lsetpw">Salvar nova senha</button>
+      <p id="recmsg" role="status" style="color:var(--loss);min-height:1.5em"></p>
+    </div>
+  </section>
+
+  <section id="jogcad" data-tab="dados" data-adm="1">
+    <h2>Cadastro de jogadores</h2>
+    <p class="hint">Cadastre cada jogador com o mesmo gamertag que aparece nas partidas. A posição e o OVR cadastrados passam a valer nos cartões, rankings e relatórios.</p>
+    <div class="row">
+      <input id="pgt" placeholder="Gamertag" aria-label="Gamertag">
+      <input id="pnm" placeholder="Nome (opcional)" aria-label="Nome">
+      <select id="ppos" aria-label="Posição"><option value="">Posição</option><option>Goleiro</option><option>Defensor</option><option>Meio-campo</option><option>Atacante</option></select>
+      <input id="pnum" type="number" min="0" max="99" placeholder="Nº" style="width:80px" aria-label="Número da camisa">
+      <input id="povr" type="number" min="1" max="99" placeholder="OVR" style="width:80px" aria-label="OVR">
+      <button class="pri" id="psave">Salvar jogador</button>
+    </div>
+    <div class="row">
+      <button class="ghost" id="pauto">Cadastrar quem apareceu nas partidas</button>
+      <button class="ghost" id="pmig" hidden>Enviar partidas deste navegador para o banco</button>
+      <span class="hint" id="pmsg" style="margin:0"></span>
+    </div>
+    <div class="table"><table>
+      <thead><tr><th>Gamertag</th><th>Nome</th><th>Posição</th><th>Nº</th><th>OVR</th><th>Ativo</th><th></th></tr></thead>
+      <tbody id="ptbl"></tbody>
+    </table></div>
+  </section>
+
+  <section id="importar" data-tab="dados" data-adm="1">
     <h2>Importar partidas</h2>
     <p class="hint">Informe o ID do clube e o tipo de partida, abra o link em outra aba, copie todo o JSON da página e cole abaixo. Os resultados e os jogadores abaixo passam a mostrar só os dados do seu time. As partidas importadas ficam salvas neste navegador: você pode importar quantas vezes quiser, sem duplicar, e escolher quais analisar na seção Partidas salvas.</p>
     <div class="row">
@@ -158,7 +209,7 @@ footer{border-top-color:#263955}
     <textarea id="json" placeholder="Cole aqui o JSON das partidas" aria-label="JSON das partidas"></textarea>
     <div class="row">
       <button class="pri" id="carregar">Carregar partidas</button>
-      <button class="ghost" id="limpar">Apagar partidas salvas</button>
+      <button class="ghost" id="limpar">Apagar todas as partidas do banco</button>
       <select id="clube" hidden aria-label="Seu clube"></select>
     </div>
     <p id="msg" role="status"></p>
@@ -192,7 +243,7 @@ footer{border-top-color:#263955}
     <div class="row"><button class="pri" id="pdfgo">Gerar PDF</button><span class="hint" id="pdfmsg" style="margin:0"></span></div>
   </section>
 
-  <section id="biblioteca" data-tab="dados">
+  <section id="biblioteca" data-tab="dados" data-adm="1">
     <h2>Partidas salvas</h2>
     <p class="hint" id="libinfo"></p>
     <div class="row">
@@ -271,9 +322,12 @@ footer{border-top-color:#263955}
 <footer><div class="wrap">TSIIX ESPORTS, time de FC27.</div></footer>
 
 </div>
-<script>const APP0=document.getElementById("app").innerHTML,SELF=document.currentScript?document.currentScript.textContent:"",STYLE0=document.getElementById("appstyle").textContent,HEAD0="<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n<title>TSIIX ESPORTS – Elenco e estatísticas FC27</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;500;600&display=swap\" rel=\"stylesheet\">";
-let SEED=/*SEED_START*/{"v":0,"club":"","name":"","items":[],"off":[],"ovr":{},"season":[]}/*SEED_END*/;
-let EDIT=true,DIRTY=false,SEASON=[];
+<script>/* ====== CONFIGURAÇÃO DO SUPABASE (Project Settings > API) ====== */
+const SUPABASE_URL="";   // ex.: https://abcdxyz.supabase.co
+const SUPABASE_KEY="";   // chave anon / publishable. NUNCA use a service_role aqui.
+/* ================================================================ */
+const sb=(window.supabase&&SUPABASE_URL&&SUPABASE_KEY)?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let EDIT=false,DIRTY=false,SEASON=[],REG={},ME=null,DBERR="",REC=false;
 
 /* ====== EDITE AQUI: dados do time ====== */
 const PLAYERS=[
@@ -352,7 +406,8 @@ function render(){
 const pct=(x,y)=>y?Math.round(x/y*100)+"%":"—";
 const ORD=["Goleiro","Defensor","Meio-campo","Atacante"],LBL={Goleiro:"Goleiros",Defensor:"Defensores","Meio-campo":"Meio-campistas",Atacante:"Atacantes"};
 const ordCmp=(a,b)=>(ORD.indexOf(a)<0?9:ORD.indexOf(a))-(ORD.indexOf(b)<0?9:ORD.indexOf(b));
-const posOf=x=>Object.entries(x.ps||{}).sort((a,b)=>b[1]-a[1])[0]?.[0]||"Outros";
+const posOf=x=>{const r=REG[String(x.nome||"").toLowerCase()];return (r&&r.pos)||tallyPos(x)};
+const tallyPos=x=>Object.entries(x.ps||{}).sort((a,b)=>b[1]-a[1])[0]?.[0]||"Outros";
 
 function rosterTable(ag){
   if(!ag.length)return '<p class="hint">Sem dados de jogadores.</p>';
@@ -371,13 +426,45 @@ function teamBlock(m){
 
 let LIB={club:"",name:"",items:[],off:new Set()},LASTMSG="",WIPE=0;
 const LF={mes:"",tipo:""},SK="tsiix.v1";
-function saveLib(){if(!EDIT)return;DIRTY=true;updAdm();try{localStorage.setItem(SK,JSON.stringify({base:SEED.v,club:LIB.club,name:LIB.name,items:LIB.items,off:[...LIB.off],ovr:OVR,season:SEASON}))}catch(e){setMsg("Não consegui guardar o rascunho neste navegador. Publique antes de fechar a página.",true)}}
-function loadLib(){
-  LIB={club:SEED.club||"",name:SEED.name||"",items:SEED.items||[],off:new Set(SEED.off||[])};OVR=Object.assign({},SEED.ovr||{});SEASON=SEED.season||[];DIRTY=false;
-  if(!EDIT)return;
-  try{const j=JSON.parse(localStorage.getItem(SK)||"null");if(j&&j.base===SEED.v&&Array.isArray(j.items)){LIB={club:j.club||"",name:j.name||"",items:j.items,off:new Set(j.off||[])};OVR=j.ovr||{};SEASON=j.season||[];DIRTY=true}}catch(e){}
+async function fetchAll(table,order){let out=[],from=0;for(;;){const {data,error}=await sb.from(table).select("*").order(order).range(from,from+999);if(error)throw error;out=out.concat(data);if(data.length<1000)break;from+=1000}return out}
+async function loadFromDb(){
+  const [ms,mps,pls,st]=await Promise.all([fetchAll("matches","id"),fetchAll("match_players","id"),fetchAll("players","gamertag"),sb.from("site_settings").select("key,value")]);
+  const byM={};
+  mps.forEach(r=>{(byM[r.match_id]=byM[r.match_id]||[]).push({nome:r.gamertag,pos:r.pos||"",gols:r.goals,ast:r.assists,nota:+r.rating||0,sh:r.shots,pm:r.passes_made,pa:r.pass_attempts,tm:r.tackles_made,ta:r.tackle_attempts,sv:r.saves,rc:r.red_cards,min:r.minutes,gc:r.goals_conceded,cs:r.clean_sheets,mom:r.motm?1:0})});
+  const off=new Set(),items=ms.map(m=>{
+    const ts=m.played_at?Math.floor(Date.parse(m.played_at)/1000):0,key=m.ea_match_id||m.id,raw=m.raw||{};
+    if(!m.selected)off.add(key);
+    return {id:m.id,key,ts,data:ts?new Date(ts*1000).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}):"",comp:m.match_type,adv:m.opponent,pro:m.goals_for,contra:m.goals_against,jog:byM[m.id]||[],t1:raw.t1||null,t2:raw.t2||null,_sel:!!m.selected,_comp:m.match_type}});
+  LIB={club:"",name:"",items,off};
+  REG={};pls.forEach(p=>{REG[p.gamertag.toLowerCase()]=p});
+  SEASON=[];OVR={};
+  const sea=((st&&st.data)||[]).find(r=>r.key==="season");
+  if(sea&&Array.isArray(sea.value)){SEASON=sea.value;SEASON.forEach(p=>{if(p.ovr)OVR[p.nome]=p.ovr})}
+  items.forEach(m=>m.jog.forEach(p=>{const r=REG[p.nome.toLowerCase()];if(r&&r.ovr)OVR[p.nome]=r.ovr}));
 }
-function sync(){const real=LIB.items.length>0||!EDIT;STATE.matches=real?LIB.items.filter(m=>!LIB.off.has(m.key)&&(MODO==="Todas"||m.comp===MODO)).sort((a,b)=>b.ts-a.ts):MATCHES.map(m=>({...m,jog:[]}));STATE.real=real}
+async function persistNew(items){
+  const rows=items.map(m=>({ea_match_id:m.key,played_at:m.ts?new Date(m.ts*1000).toISOString():null,match_type:m.comp,opponent:m.adv,goals_for:m.pro,goals_against:m.contra,selected:!LIB.off.has(m.key),raw:{t1:m.t1,t2:m.t2}}));
+  const {data,error}=await sb.from("matches").upsert(rows,{onConflict:"ea_match_id",ignoreDuplicates:true}).select("id,ea_match_id");
+  if(error)throw error;
+  const idByKey={};(data||[]).forEach(r=>{idByKey[r.ea_match_id]=r.id});
+  const mp=[];
+  items.forEach(m=>{const id=idByKey[m.key];if(!id)return;m.jog.forEach(p=>mp.push({match_id:id,gamertag:p.nome,pos:p.pos||null,goals:p.gols,assists:p.ast,rating:p.nota||null,shots:p.sh,passes_made:p.pm,pass_attempts:p.pa,tackles_made:p.tm,tackle_attempts:p.ta,saves:p.sv,red_cards:p.rc,minutes:p.min,goals_conceded:p.gc||0,clean_sheets:p.cs||0,motm:!!p.mom}))});
+  for(let i=0;i<mp.length;i+=500){const r=await sb.from("match_players").insert(mp.slice(i,i+500));if(r.error)throw r.error}
+  return (data||[]).length;
+}
+let SAVING=null;
+function saveLib(){if(!EDIT||!sb)return;clearTimeout(SAVING);setAdm("Salvando...");SAVING=setTimeout(doSave,300)}
+async function doSave(){
+  try{
+    const fresh=LIB.items.filter(m=>!m.id);
+    if(fresh.length){await persistNew(fresh);await loadFromDb();refresh();renderLib();renderPlayersAdmin()}
+    for(const m of LIB.items){if(!m.id)continue;const sel=!LIB.off.has(m.key);
+      if(sel!==m._sel||m.comp!==m._comp){const {error}=await sb.from("matches").update({selected:sel,match_type:m.comp}).eq("id",m.id);if(error)throw error;m._sel=sel;m._comp=m.comp}}
+    setAdm("Alterações salvas no banco.");
+  }catch(e){console.error(e);setAdm("Erro ao salvar: "+(e.message||e))}
+}
+async function saveSeason(){if(!EDIT||!sb)return;const {error}=await sb.from("site_settings").upsert({key:"season",value:SEASON});setAdm(error?"Erro ao salvar os totais: "+error.message:"Totais da temporada salvos no banco.")}
+function sync(){const real=LIB.items.length>0||!!sb;STATE.matches=real?LIB.items.filter(m=>!LIB.off.has(m.key)&&(MODO==="Todas"||m.comp===MODO)).sort((a,b)=>b.ts-a.ts):MATCHES.map(m=>({...m,jog:[]}));STATE.real=real}
 function refresh(){sync();const nomes=[...new Set(STATE.matches.flatMap(m=>m.jog.map(p=>p.nome)))].sort();$("fjog").innerHTML='<option value="">Todos os jogadores</option>'+nomes.map(n=>`<option>${esc(n)}</option>`).join("");F.jog="";render();libInfo()}
 function mergeLib(){
   const id=$("clube").value,nv=build(STATE.raw.raw,id,$("tipo").value);
@@ -391,14 +478,16 @@ function mergeLib(){
   return true;
 }
 function wipe(){
-  if(LIB.items.length&&!WIPE){WIPE=1;$("limpar").textContent="Clique de novo para apagar tudo";setTimeout(()=>{WIPE=0;$("limpar").textContent="Apagar partidas salvas"},4000);return false}
-  WIPE=0;$("limpar").textContent="Apagar partidas salvas";LIB={club:"",name:"",items:[],off:new Set()};saveLib();renderLib();return true;
+  if(LIB.items.length&&!WIPE){WIPE=1;$("limpar").textContent="Clique de novo para apagar tudo";setTimeout(()=>{WIPE=0;$("limpar").textContent="Apagar todas as partidas do banco"},4000);return false}
+  WIPE=0;$("limpar").textContent="Apagar todas as partidas do banco";LIB={club:"",name:"",items:[],off:new Set()};
+  if(sb&&EDIT)sb.from("matches").delete().not("id","is",null).then(({error})=>setAdm(error?"Erro ao apagar: "+error.message:"Partidas apagadas do banco."));
+  renderLib();return true;
 }
 const ymk=m=>{if(!m.ts)return 0;const d=new Date(m.ts*1000);return d.getFullYear()*100+d.getMonth()+1};
 const ymL=k=>k?String(k%100).padStart(2,"0")+"/"+Math.floor(k/100):"Sem data";
 function libVis(){return LIB.items.filter(m=>(!LF.mes||String(ymk(m))===LF.mes)&&(!LF.tipo||m.comp===LF.tipo)).sort((a,b)=>b.ts-a.ts)}
 function libInfo(){const n=LIB.items.length,s=LIB.items.filter(m=>!LIB.off.has(m.key)&&(MODO==="Todas"||m.comp===MODO)).length;
-  $("libinfo").textContent=n?s+" de "+n+" partidas entram na análise (modalidade ativa: "+MODO+", só as marcadas). Todas as outras abas usam só essas. As partidas ficam salvas neste navegador.":"Nenhuma partida salva ainda. Importe o JSON das partidas na seção acima."}
+  $("libinfo").textContent=n?s+" de "+n+" partidas entram na análise (modalidade ativa: "+MODO+", só as marcadas). Todas as outras abas usam só essas. As partidas ficam salvas no banco de dados.":"Nenhuma partida salva ainda. Importe o JSON das partidas na seção acima."}
 function renderLib(){
   const ks=[...new Set(LIB.items.map(ymk))].sort((a,b)=>b-a);
   $("lmes").innerHTML='<option value="">Todos os meses</option>'+ks.map(k=>`<option value="${k}">${ymL(k)}</option>`).join("");
@@ -453,8 +542,7 @@ $("detalhe").onclick=async e=>{
 
 const TABS=[["geral","Visão geral"],["partidas","Partidas"],["relatorios","Relatórios"],["jogadores","Jogadores"],["destaques","Destaques"],["dados","Dados"]];
 function showTab(t){
-  if(t==="dados"&&!EDIT)t="geral";
-  document.querySelectorAll("[data-tab]").forEach(e=>{e.hidden=e.dataset.tab!==t});
+  document.querySelectorAll("[data-tab]").forEach(e=>{e.hidden=e.dataset.tab!==t||(e.dataset.adm&&(!EDIT||REC))||(e.dataset.pub&&(EDIT||REC))||(e.dataset.rec&&!REC)});
   $("tabbar").querySelectorAll("button").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===t));
   try{history.replaceState(null,"","#"+t)}catch(e){}
 }
@@ -744,38 +832,105 @@ function updLink(){const id=$("cid").value.trim();$("abrir").href="https://procl
 $("matches").onclick=e=>{const t=e.target.closest("tr[data-i]");if(!t)return;SELM=CUR[+t.dataset.i];render();$("detalhe").scrollIntoView({block:"nearest"})};
 $("matches").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){const t=e.target.closest("tr[data-i]");if(t){e.preventDefault();t.click()}}};
 $("ca").onchange=$("cb").onchange=renderCmp;
-$("cid").oninput=updLink;$("carregar2").onclick=()=>{try{const a=parseMembers($("json2").value.trim());SEASON=a;renderSeason(a);a.forEach(p=>{if(p.ovr)OVR[p.nome]=p.ovr});saveLib();render();setMsg(a.length+" jogadores nos totais da temporada."+(a.some(p=>p.ovr)?"":" O JSON não trouxe o OVR dos jogadores."))}catch(e){setMsg(e instanceof SyntaxError?"Esse texto não é um JSON válido. Copie a página inteira.":e.message,true)}};
+$("cid").oninput=updLink;$("carregar2").onclick=()=>{try{const a=parseMembers($("json2").value.trim());SEASON=a;renderSeason(a);a.forEach(p=>{if(p.ovr)OVR[p.nome]=p.ovr});saveSeason();render();setMsg(a.length+" jogadores nos totais da temporada."+(a.some(p=>p.ovr)?"":" O JSON não trouxe o OVR dos jogadores."))}catch(e){setMsg(e instanceof SyntaxError?"Esse texto não é um JSON válido. Copie a página inteira.":e.message,true)}};
 $("minj").oninput=render;
 $("tipo").onchange=updLink;updLink();
 
-function buildTabs(){$("tabbar").innerHTML=TABS.filter(t=>EDIT||t[0]!=="dados").map(([k,l])=>`<button role="tab" data-t="${k}">${k==="dados"?"Admin":l}</button>`).join("")}
-function updAdm(){const b=$("adminbar");b.hidden=!EDIT;if(!EDIT)return;$("admsg").textContent=DIRTY?"Modo administrador. Há alterações não publicadas, guardadas só neste navegador.":"Modo administrador. O site público está igual ao que você vê.";$("pub").disabled=!DIRTY;$("disc").disabled=!DIRTY}
-function buildHTML(){
-  const seed={v:Date.now(),club:LIB.club,name:LIB.name,items:LIB.items,off:[...LIB.off],ovr:OVR,season:SEASON};
-  const A="/*SEED"+"_START*/",B="/*SEED"+"_END*/",a=SELF.indexOf(A),b=SELF.indexOf(B);
-  const src=SELF.slice(0,a+A.length)+JSON.stringify(seed).replace(/</g,"\\u003c")+SELF.slice(b);
-  return "<!doctype html>\n<html lang=\"pt-BR\"><head>"+HEAD0+"<style id=\"appstyle\">"+STYLE0+"</style></head><body>\n<div id=\"app\">"+APP0+"</div>\n<script>"+src+"<"+"/script>\n</body></html>";
+function buildTabs(){$("tabbar").innerHTML=TABS.map(([k,l])=>`<button role="tab" data-t="${k}">${k==="dados"?(EDIT?"Admin":"Entrar"):l}</button>`).join("")}
+function setAdm(t){const e=$("admsg");if(e)e.textContent=t}
+function applyRole(){const b=document.querySelector("#tabbar [aria-selected=true]"),t=b?b.dataset.t:"geral";buildTabs();showTab(t)}
+function updAdm(){
+  const b=$("adminbar");
+  if(!sb){b.hidden=false;$("logout").hidden=true;setAdm("Supabase não configurado: preencha SUPABASE_URL e SUPABASE_KEY no começo do script.");applyRole();return}
+  if(DBERR){b.hidden=false;$("logout").hidden=true;setAdm(DBERR);applyRole();return}
+  b.hidden=!EDIT;$("logout").hidden=false;
+  if(EDIT)setAdm("Administrador: "+((ME&&ME.email)||"")+". As alterações são salvas direto no banco.");
+  applyRole();
 }
-$("pub").onclick=async()=>{
-  $("pub").disabled=true;$("admsg").textContent="Publicando...";
-  try{
-    const art=window.claude&&await claude.use("artifact");
-    if(!art||!SELF||SELF.indexOf("/*SEED"+"_START*/")<0){$("admsg").textContent="Publicar não está disponível nesta visualização. Abra o site pelo claude.ai.";$("pub").disabled=false;return}
-    await art.publish(buildHTML());
-  }catch(e){const c=e&&e.code;
-    $("admsg").textContent=c==="not_writer"||c==="not_granted"?"Você não tem permissão para publicar este site.":c==="too_large"?"Os dados passaram do limite de tamanho. Desmarque ou apague partidas antigas.":c==="conflict"?"Outra versão foi publicada. A página vai recarregar.":"Não consegui publicar agora. Tente de novo em instantes.";
-    $("pub").disabled=false}
+function setL(t){$("lmsg").textContent=t}
+async function checkAdmin(session){
+  ME=session?session.user:null;EDIT=false;
+  if(ME){const {data,error}=await sb.from("admins").select("user_id").eq("user_id",ME.id).maybeSingle();EDIT=!!data&&!error;if(!EDIT){setL("Esta conta não é de administrador.")}}
+  updAdm();renderPlayersAdmin();
+}
+const authMsg=e=>{const m=String((e&&e.message)||"").toLowerCase();return m.includes("not confirmed")?"Esta conta ainda não foi confirmada. No Supabase, crie o usuário marcando Auto Confirm User.":(m.includes("rate")||m.includes("too many"))?"Muitas tentativas. Aguarde alguns minutos.":"Usuário ou senha incorretos."};
+async function doLogin(){
+  if(!sb){setL("Supabase não configurado.");return}
+  const email=$("lemail").value.trim(),pw=$("lsenha").value;
+  if(!email||!pw){setL("Informe usuário e senha.");return}
+  $("lgo").disabled=true;setL("Entrando...");
+  try{const {error}=await sb.auth.signInWithPassword({email,password:pw});if(error){setL(authMsg(error));return}$("lsenha").value="";setL("")}
+  catch(e){setL("Não consegui falar com o servidor. Verifique a conexão.")}
+  finally{$("lgo").disabled=false}
+}
+$("lgo").onclick=doLogin;
+["lemail","lsenha"].forEach(i=>$(i).addEventListener("keydown",e=>{if(e.key==="Enter")doLogin()}));
+$("lshow").onclick=()=>{const p=$("lsenha"),on=p.type==="password";p.type=on?"text":"password";$("lshow").textContent=on?"Ocultar":"Mostrar";$("lshow").setAttribute("aria-pressed",String(on))};
+$("lforgot").onclick=async()=>{
+  const email=$("lemail").value.trim();
+  if(!sb||!email){setL("Digite o e-mail no campo acima e clique em Esqueci a senha.");return}
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  setL(error?"Não consegui enviar o link agora. Tente de novo em instantes.":"Se este e-mail for de um administrador, enviamos um link para criar uma nova senha.");
 };
-$("disc").onclick=()=>{try{localStorage.removeItem(SK)}catch(e){}loadLib();refresh();renderLib();if(SEASON.length)renderSeason(SEASON);updAdm();setMsg("Rascunho descartado.")};
+$("lsetpw").onclick=async()=>{
+  const a=$("lpw1").value,b=$("lpw2").value,m=$("recmsg");
+  if(a.length<8){m.textContent="Use pelo menos 8 caracteres.";return}
+  if(a!==b){m.textContent="As senhas não conferem.";return}
+  const {error}=await sb.auth.updateUser({password:a});
+  if(error){m.textContent="Não consegui trocar a senha: "+error.message;return}
+  REC=false;$("lpw1").value=$("lpw2").value="";m.textContent="";setL("Senha alterada.");
+  const {data}=await sb.auth.getSession();await checkAdmin(data.session);
+};
+$("logout").onclick=async()=>{if(sb){await sb.auth.signOut();ME=null;EDIT=false;updAdm()}};
+
+/* ---- cadastro de jogadores ---- */
+function pmsg(t){$("pmsg").textContent=t}
+function renderPlayersAdmin(){
+  const L=Object.values(REG).sort((a,b)=>a.gamertag.localeCompare(b.gamertag));
+  $("ptbl").innerHTML=L.length?L.map(p=>`<tr><td>${esc(p.gamertag)}</td><td>${esc(p.name||"")}</td><td>${esc(p.pos||"")}</td><td>${p.shirt_number??""}</td><td>${p.ovr??""}</td><td><input type="checkbox" data-pa="${p.id}" ${p.active?"checked":""} aria-label="Jogador ativo"></td><td><button class="ghost" data-pe="${p.id}">Editar</button> <button class="ghost" data-px="${p.id}">Excluir</button></td></tr>`).join(""):'<tr><td colspan="7">Nenhum jogador cadastrado.</td></tr>';
+  let draft=0;try{const j=JSON.parse(localStorage.getItem("tsiix.v1")||"null");if(j&&Array.isArray(j.items))draft=j.items.filter(m=>!LIB.items.some(x=>x.key===m.key)).length}catch(e){}
+  $("pmig").hidden=!EDIT||!draft;if(draft)$("pmig").textContent="Enviar "+draft+" partida(s) deste navegador para o banco";
+}
+async function reloadAll(){await loadFromDb();refresh();renderLib();renderPlayersAdmin();if(SEASON.length)renderSeason(SEASON)}
+$("psave").onclick=async()=>{
+  const gt=$("pgt").value.trim();if(!gt){pmsg("Informe o gamertag.");return}
+  const row={gamertag:gt,name:$("pnm").value.trim()||null,pos:$("ppos").value||null,shirt_number:$("pnum").value?+$("pnum").value:null,ovr:$("povr").value?+$("povr").value:null};
+  const {error}=await sb.from("players").upsert(row,{onConflict:"gamertag"});
+  if(error){pmsg("Erro: "+error.message);return}
+  ["pgt","pnm","ppos","pnum","povr"].forEach(i=>{$(i).value=""});pmsg("Jogador salvo.");await reloadAll();
+};
+$("ptbl").onclick=async e=>{
+  const ed=e.target.closest("[data-pe]"),ex=e.target.closest("[data-px]");
+  if(ed){const p=Object.values(REG).find(x=>x.id===ed.dataset.pe);if(p){$("pgt").value=p.gamertag;$("pnm").value=p.name||"";$("ppos").value=p.pos||"";$("pnum").value=p.shirt_number??"";$("povr").value=p.ovr??""}}
+  if(ex){const p=Object.values(REG).find(x=>x.id===ex.dataset.px);if(p&&confirm("Excluir "+p.gamertag+"? As estatísticas das partidas continuam salvas.")){const {error}=await sb.from("players").delete().eq("id",p.id);pmsg(error?"Erro: "+error.message:"Jogador excluído.");await reloadAll()}}
+};
+$("ptbl").onchange=async e=>{const k=e.target.dataset&&e.target.dataset.pa;if(!k)return;const {error}=await sb.from("players").update({active:e.target.checked}).eq("id",k);pmsg(error?"Erro: "+error.message:"Atualizado.");await reloadAll()};
+$("pauto").onclick=async()=>{
+  const seen={};LIB.items.forEach(m=>m.jog.forEach(p=>{const k=p.nome.toLowerCase();if(REG[k])return;(seen[k]=seen[k]||{gamertag:p.nome,pos:{}}).pos[p.pos]=(seen[k].pos[p.pos]||0)+1}));
+  const rows=Object.values(seen).map(x=>({gamertag:x.gamertag,pos:Object.entries(x.pos).sort((a,b)=>b[1]-a[1]).map(e=>e[0]).find(v=>v)||null}));
+  if(!rows.length){pmsg("Todos os jogadores das partidas já estão cadastrados.");return}
+  const {error}=await sb.from("players").upsert(rows,{onConflict:"gamertag"});
+  pmsg(error?"Erro: "+error.message:rows.length+" jogador(es) cadastrado(s). Complete nome, número e OVR.");await reloadAll();
+};
+$("pmig").onclick=async()=>{
+  try{const j=JSON.parse(localStorage.getItem("tsiix.v1")||"null"),have=new Set(LIB.items.map(m=>m.key)),novos=(j.items||[]).filter(m=>!have.has(m.key));
+    pmsg("Enviando...");await persistNew(novos);await reloadAll();pmsg(novos.length+" partida(s) enviada(s) para o banco.")}
+  catch(e){console.error(e);pmsg("Erro ao enviar: "+(e.message||e))}
+};
 
 try{MODO=localStorage.getItem("tsiix.modo")||MODO}catch(e){}$("modo").value=MODO;
 function startView(){
-  loadLib();buildTabs();refresh();renderLib();updAdm();
-  if(SEASON.length)renderSeason(SEASON);else if(!EDIT)$("season").innerHTML='<p class="hint">Ainda não há totais da temporada publicados.</p>';
-  const h=location.hash.slice(1);showTab(TABS.some(t=>t[0]===h)?h:(LIB.items.length||!EDIT?"geral":"dados"));
+  buildTabs();refresh();renderLib();updAdm();renderPlayersAdmin();
+  if(SEASON.length)renderSeason(SEASON);else $("season").innerHTML='<p class="hint">Ainda não há totais da temporada.</p>';
+  const h=location.hash.slice(1);showTab(TABS.some(t=>t[0]===h)?h:"geral");
 }
-startView();
-// Acesso administrativo liberado publicamente: sem autenticação Claude.
+(async()=>{
+  if(!sb){startView();return}
+  try{await loadFromDb()}catch(e){console.error(e);DBERR="Não consegui ler o banco ("+(e.message||e)+"). Confira se o script SQL foi executado."}
+  startView();
+  sb.auth.onAuthStateChange((ev,sess)=>{if(ev==="PASSWORD_RECOVERY"){REC=true;setTimeout(()=>{updAdm();showTab("dados")},0);return}if(ev!=="INITIAL_SESSION")setTimeout(()=>checkAdmin(sess),0)});
+  const {data}=await sb.auth.getSession();await checkAdmin(data.session);
+})();
 </script>
 </body>
 </html>
