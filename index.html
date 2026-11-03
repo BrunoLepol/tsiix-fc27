@@ -146,6 +146,110 @@ footer{border-top-color:#26334b}
 .loginbox .brand-crest{width:86px;height:86px}
 @media(max-width:640px){.bar{height:66px}.brand-crest{width:46px;height:46px}.logo{font-size:23px}.hero{padding:38px 0 30px}.hero-brand{gap:10px}.hero-crest{width:34%;max-height:150px}.hero h1{font-size:clamp(38px,11vw,62px)}.wrap{padding-left:16px;padding-right:16px}nav a{margin-left:12px;font-size:13px}}
 
+
+/* =========================================================
+   TSIIX E-SPORTS — camada responsiva complementar
+   Mantém a aplicação e suas funcionalidades existentes.
+   ========================================================= */
+html { width:100%; overflow-x:hidden; }
+body { width:100%; min-width:320px; overflow-x:hidden; }
+img, svg, canvas { max-width:100%; }
+button, input, select, textarea { touch-action: manipulation; }
+button { min-height:40px; }
+.table { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.table table { min-width:520px; }
+.tabbar { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+.tabs { max-width:100%; }
+input, select, textarea { min-width:0; }
+.loginbox { width:100%; }
+
+@media (max-width: 760px) {
+  .wrap { padding-left:16px; padding-right:16px; }
+  .bar { min-height:66px; height:auto; padding-top:8px; padding-bottom:8px; gap:8px; }
+  .brand { gap:8px; }
+  .brand-crest { width:44px; height:44px; }
+  .logo { font-size:clamp(19px, 5vw, 24px); }
+  header.top nav { display:none; }
+  .modo { justify-content:flex-start; padding-top:12px; }
+  .modo label { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+  .modo select { flex:1 1 150px; }
+  .tabbar { margin-left:0; margin-right:0; }
+  .tabbar button { padding:11px 13px; font-size:17px; min-height:44px; }
+  .hero { padding:34px 0 26px; }
+  .hero-brand { align-items:center; gap:12px; }
+  .hero-copy { flex:1 1 auto; }
+  .hero-crest { width:30%; max-width:132px; max-height:132px; }
+  .hero h1 { font-size:clamp(34px, 9vw, 58px); overflow-wrap:anywhere; }
+  .hero p { font-size:15px; }
+  section { padding:27px 0; }
+  h2 { font-size:30px; }
+  .kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); margin-top:22px; }
+  .kpi { padding:13px 12px; min-width:0; }
+  .kpi .num { font-size:clamp(29px, 8vw, 39px); }
+  .grid { grid-template-columns:repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap:12px; }
+  .card { min-width:0; padding:13px; }
+  .card h3 { font-size:23px; overflow-wrap:anywhere; }
+  .ovr { font-size:44px; }
+  .stats { gap:4px; }
+  .stats b, .pst b { font-size:20px; }
+  .stats span, .pst span { font-size:11px; }
+  .perf { gap:8px; flex-wrap:wrap; }
+  .row { align-items:stretch; }
+  .row > input, .row > select { flex:1 1 130px; }
+  .row button { flex:1 1 auto; }
+  .row label { flex-wrap:wrap; }
+  textarea { min-height:115px; }
+  .adminbar { padding:10px 16px; gap:8px; }
+  .adminbar span { flex:1 1 100%; min-width:0; }
+  .loginbox { margin:22px auto; padding:20px 16px; }
+  .loginbox .brand-crest { width:62px; height:62px; }
+  .pw { align-items:stretch; }
+  .pw input { width:0; min-width:0; }
+  .pw button { flex:0 0 auto; }
+  .rep>summary { padding:12px; font-size:20px; }
+  .rep>summary small { display:block; margin:3px 0 0; }
+  .rep .in { padding:0 12px 12px; }
+  .rep .kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .awards { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .aw { min-width:0; padding:9px; }
+  .aw b { font-size:19px; overflow-wrap:anywhere; }
+  .grp { font-size:23px; }
+  .grp small { display:block; margin:2px 0 0; }
+  .cmphead, .cmprow { grid-template-columns:minmax(70px, 90px) minmax(0, 1fr) minmax(0, 1fr); gap:7px; }
+  .cmphead { font-size:19px; }
+  .cmprow .lbl { font-size:12px; overflow-wrap:anywhere; }
+  .pair { gap:5px; min-width:0; }
+  .pair .v { min-width:30px; font-size:18px; }
+  .pair .bar { min-width:12px; }
+  .top li { align-items:flex-start; }
+  footer { padding:20px 0 30px; }
+}
+
+@media (max-width: 420px) {
+  .wrap { padding-left:12px; padding-right:12px; }
+  .brand-crest { width:38px; height:38px; }
+  .logo { font-size:19px; letter-spacing:.035em; }
+  .hero-brand { gap:8px; }
+  .hero-crest { width:27%; max-height:105px; }
+  .hero h1 { font-size:clamp(31px, 8.8vw, 40px); }
+  .hero p { font-size:14px; }
+  .kpi { padding:11px 9px; }
+  .kpi .num { font-size:29px; }
+  .card { padding:11px; }
+  .tabs button { padding:7px 10px; font-size:14px; }
+  .tabbar button { padding:10px 11px; font-size:16px; }
+  .awards { grid-template-columns:1fr; }
+  .cmphead, .cmprow { grid-template-columns:66px minmax(0, 1fr) minmax(0, 1fr); gap:5px; }
+  .cmphead { font-size:17px; }
+  .pair .v { min-width:26px; font-size:16px; }
+  .loginbox { padding:18px 13px; }
+  .loginbox .brand-crest { width:52px; height:52px; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tabbar, .table { scroll-behavior:smooth; }
+}
+
 </style>
 </head>
 <body>
@@ -162,7 +266,7 @@ footer{border-top-color:#26334b}
   <div class="hero" data-tab="geral">
     <div class="hero-brand"><div class="hero-copy">
       <h1>TSIIX E-SPORTS</h1>
-      <p>Dados, desempenho e resultados da TSIIX. Explore as estatísticas individuais dos jogadores e acompanhe a evolução da equipe.</p>
+      <p>Dados, desempenho e resultados do TSIIX. Explore as estatísticas individuais dos jogadores e acompanhe a evolução da equipe.</p>
     </div><img class="hero-crest" src="tsiix-escudo.jpeg" alt="Escudo oficial do TSIIX E-SPORTS"></div>
     <div class="kpis" id="kpis"></div>
   </div>
