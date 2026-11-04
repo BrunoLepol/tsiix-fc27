@@ -800,7 +800,8 @@ async function loadPdfCrest(){
 }
 function buildPdf(ms,res,det,crest){
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:"pt",format:"a4"}),W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=42,t=L1;
-  const NAVY=[5,9,18],PANEL=[15,23,39],MUT=[153,169,194],ACC=[23,105,255],GOLD=[230,173,60],WHITE=[247,249,253];
+  const NAVY=[8,18,38],PANEL=[18,34,59],MUT=[158,177,204],ACC=[35,116,235],GOLD=[238,184,65],WHITE=[248,250,255];
+  const GREEN=[28,145,92],RED=[196,67,75],CYAN=[43,158,190],PURPLE=[117,91,190],LIGHT=[239,244,251];
   const fd=ts=>ts?new Date(ts*1000).toLocaleDateString("pt-BR"):"-",hr=ts=>ts?new Date(ts*1000).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):"-";
   const rt=(x,z)=>z?Math.round(x/z*100)+"%":"-";
   const ds=ms.filter(m=>m.ts).map(m=>m.ts),per=ds.length?fd(Math.min(...ds))+" a "+fd(Math.max(...ds)):"sem data";
@@ -822,14 +823,14 @@ function buildPdf(ms,res,det,crest){
   const thermometer=R.ag.map(p=>{
     const old=prevByName[p.nome],delta=old&&old.j>=3?avg(p)-avg(old):null;
     let status="Regular";
-    if(p.j>=3&&delta!==null&&delta>=.3)status="Em evolução";
-    else if(p.j>=3&&avg(p)>=8)status="Em grande fase";
+    if(p.j>=3&&avg(p)>=8)status="Em grande fase";
     else if(p.j>=3&&avg(p)<6.5)status="Atenção";
+    else if(p.j>=3&&delta!==null&&delta>=.3)status="Em evolução";
     return {...p,status,delta};
   }).sort((a,b)=>posOrder.indexOf(posOf(a))-posOrder.indexOf(posOf(b))||avg(b)-avg(a));
   let y=M;
-  const sec=txt=>{if(y>H-125){doc.addPage();y=M}doc.setFont("helvetica","bold");doc.setFontSize(13);doc.setTextColor(...NAVY);doc.text(t(txt),M,y);y+=9;doc.setDrawColor(...ACC);doc.setLineWidth(2);doc.line(M,y,M+42,y);y+=15};
-  const tbl=(head,body,opt)=>{if(!body.length)return;doc.autoTable(Object.assign({startY:y,head:[head.map(t)],body:body.map(r=>r.map(c=>t(c))),margin:{left:M,right:M,bottom:38},styles:{font:"helvetica",fontSize:8.2,cellPadding:4,textColor:[27,39,59],lineColor:[220,226,236],lineWidth:.35},headStyles:{fillColor:NAVY,textColor:255,fontStyle:"bold"},alternateRowStyles:{fillColor:[241,245,251]},didDrawPage:()=>{}},opt||{}));y=doc.lastAutoTable.finalY+16};
+  const sec=txt=>{if(y>H-125){doc.addPage();y=M}doc.setFillColor(...LIGHT);doc.roundedRect(M,y-13,W-2*M,25,4,4,"F");doc.setFillColor(...ACC);doc.roundedRect(M,y-13,5,25,2,2,"F");doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(t(txt),M+14,y+3);y+=25};
+  const tbl=(head,body,opt)=>{if(!body.length)return;doc.autoTable(Object.assign({startY:y,head:[head.map(t)],body:body.map(r=>r.map(c=>t(c))),margin:{left:M,right:M,bottom:38},styles:{font:"helvetica",fontSize:8.2,cellPadding:5,textColor:[27,39,59],lineColor:[220,226,236],lineWidth:.35, valign:"middle"},headStyles:{fillColor:[19,52,99],textColor:255,fontStyle:"bold",cellPadding:6},alternateRowStyles:{fillColor:[242,246,252]},bodyStyles:{minCellHeight:19},didDrawPage:()=>{}},opt||{}));y=doc.lastAutoTable.finalY+16};
   // Capa profissional com o escudo oficial, sem redesenhá-lo.
   doc.setFillColor(...NAVY);doc.rect(0,0,W,H,"F");
   doc.setFillColor(10,28,57);doc.triangle(W,0,W,390,W-260,0,"F");
@@ -842,7 +843,7 @@ function buildPdf(ms,res,det,crest){
   doc.text(t(ms.length+" partidas analisadas  |  "+per),W/2,350,{align:"center"});
   const cards=[ ["JOGOS",String(R.n)], ["VITÓRIAS",String(R.v)], ["APROVEITAMENTO",R.apr+"%"], ["SALDO DE GOLS",(R.gp-R.gc>0?"+":"")+(R.gp-R.gc)] ];
   const cw=(W-2*M-24)/4,cy=H-190;
-  cards.forEach((a,i)=>{const x=M+i*(cw+8);doc.setFillColor(...PANEL);doc.roundedRect(x,cy,cw,64,5,5,"F");doc.setTextColor(...MUT);doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.text(t(a[0]),x+cw/2,cy+20,{align:"center"});doc.setTextColor(...(i===2?GOLD:WHITE));doc.setFontSize(19);doc.text(t(a[1]),x+cw/2,cy+46,{align:"center"})});
+  cards.forEach((a,i)=>{const x=M+i*(cw+8),tone=[CYAN,GREEN,GOLD,(R.gp-R.gc)>=0?GREEN:RED][i];doc.setFillColor(...PANEL);doc.roundedRect(x,cy,cw,64,5,5,"F");doc.setFillColor(...tone);doc.roundedRect(x,cy,4,64,2,2,"F");doc.setTextColor(...MUT);doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.text(t(a[0]),x+cw/2,cy+20,{align:"center"});doc.setTextColor(...tone);doc.setFontSize(19);doc.text(t(a[1]),x+cw/2,cy+46,{align:"center"})});
   doc.setDrawColor(...ACC);doc.setLineWidth(2);doc.line(M,H-91,W-M,H-91);
   doc.setTextColor(...MUT);doc.setFont("helvetica","normal");doc.setFontSize(8);doc.text(t("Documento gerado a partir das estatísticas importadas da EA"),W/2,H-70,{align:"center"});
   doc.text(t("Gerado em "+new Date().toLocaleDateString("pt-BR")),W/2,H-54,{align:"center"});
@@ -851,6 +852,11 @@ function buildPdf(ms,res,det,crest){
     doc.addPage();y=M;
     sec("1. Resumo executivo");
     const l=ms.filter(m=>m.t1&&m.t1.nota>0),notaT=l.length?(l.reduce((s,m)=>s+m.t1.nota,0)/l.length).toFixed(1):"-";
+    // Indicadores em cards para leitura rápida do resumo executivo.
+    const kpis=[["GOLS MARCADOS",R.gp,GREEN],["GOLS SOFRIDOS",R.gc,RED],["CHUTES",R.sh,CYAN],["NOTA MÉDIA",notaT,PURPLE]];
+    const kw=(W-2*M-18)/4,ky=y;
+    kpis.forEach((k,i)=>{const x=M+i*(kw+6);doc.setFillColor(...LIGHT);doc.roundedRect(x,ky,kw,48,4,4,"F");doc.setFillColor(...k[2]);doc.roundedRect(x,ky,kw,3,2,2,"F");doc.setFont("helvetica","bold");doc.setFontSize(6.8);doc.setTextColor(100,116,139);doc.text(t(k[0]),x+kw/2,ky+17,{align:"center"});doc.setFontSize(15);doc.setTextColor(...k[2]);doc.text(t(String(k[1])),x+kw/2,ky+37,{align:"center"})});
+    y+=62;
     const rows=[["Partidas analisadas",R.n],["Vitórias / empates / derrotas",R.v+" / "+R.e+" / "+R.d],["Gols marcados / sofridos",R.gp+" / "+R.gc],["Média de gols por partida",(R.gp/R.n).toFixed(2)+" marcados / "+(R.gc/R.n).toFixed(2)+" sofridos"],["Saldo de gols",(R.gp-R.gc>0?"+":"")+(R.gp-R.gc)],["Aproveitamento (3 pontos por vitória)",R.apr+"%"],["Partidas sem sofrer gols",ms.filter(m=>m.contra===0).length],["Sequência de resultados (antigo → recente)",form],["Chutes",R.sh],["Passes certos",rt(R.pm,R.pa)],["Desarmes certos",rt(R.tm,R.ta)],["Defesas do goleiro",R.sv],["Cartões vermelhos",R.rc],["Nota média do time",notaT]];
     tbl(["Indicador","Resultado"],rows,{columnStyles:{0:{cellWidth:235}}});
     sec("2. Premiações da semana");
@@ -872,7 +878,8 @@ function buildPdf(ms,res,det,crest){
     posOrder.forEach(pos=>{
       const players=R.ag.filter(p=>posOf(p)===pos).sort((a,b)=>avg(b)-avg(a));
       if(!players.length)return;
-      sec(posNames[pos]+"  |  MÉDIA "+(players.reduce((s,p)=>s+avg(p),0)/players.length).toFixed(1));
+      const posGames=players.reduce((s,p)=>s+p.j,0),posRating=posGames?players.reduce((s,p)=>s+p.n,0)/posGames:0;
+      sec(posNames[pos]+"  |  MÉDIA PONDERADA "+posRating.toFixed(1));
       const rows=players.map(p=>{
         if(pos==="Goleiro")return [p.nome,p.j,avg(p).toFixed(1),p.sv,p.gc,p.cs,p.mom,p.min];
         if(pos==="Defensor")return [p.nome,p.j,avg(p).toFixed(1),rt(p.tm,p.ta),rt(p.pm,p.pa),p.g,p.a,p.mom];
@@ -889,11 +896,11 @@ function buildPdf(ms,res,det,crest){
     if(thermRows.length)tbl(["Jogador","Posição","Jogos","Nota média","Avaliação","Variação"],thermRows);
     if(y>H-90){doc.addPage();y=M}
     doc.setFont("helvetica","italic");doc.setFontSize(7.5);doc.setTextColor(...MUT);
-    const note="Termômetro: mínimo de 3 partidas. Grande fase: nota média >= 8,0; Em evolução: aumento >= 0,3 na nota média frente ao período anterior comparável (também com mínimo de 3 jogos); Atenção: nota média < 6,5; demais casos: Regular. Sem histórico comparável, a variação não é calculada. MVP: 40% nota média, 30% MoM por jogo e 30% participações em gols por jogo.";
+    const note="Termômetro: mínimo de 3 partidas. Prioridade das classificações: Em grande fase (nota >= 8,0); Atenção (nota < 6,5); Em evolução (aumento >= 0,3 frente ao período anterior comparável, também com mínimo de 3 jogos); demais casos: Regular. A variação só é calculada quando existe histórico comparável. Média por posição ponderada pelo número de partidas disputadas. MVP: 40% nota média, 30% MoM por jogo e 30% participações em gols por jogo.";
     const noteLines=doc.splitTextToSize(t(note),W-2*M);doc.text(noteLines,M,y);y+=noteLines.length*9+12;
 
     sec("6. Resultados das partidas");
-    tbl(["Data","Hora","Adversário","Placar","Resultado"],ms.map(m=>[fd(m.ts),hr(m.ts),m.adv,m.pro+" x "+m.contra,RN[resOf(m)]]),{didParseCell:d=>{if(d.section==="body"&&d.column.index===4){const v=d.cell.raw;d.cell.styles.textColor=v==="Vitória"?[26,143,76]:v==="Derrota"?[201,58,58]:[122,132,153];d.cell.styles.fontStyle="bold"}}});
+    tbl(["Data","Hora","Adversário","Placar","Resultado"],ms.map(m=>[fd(m.ts),hr(m.ts),m.adv,m.pro+" x "+m.contra,RN[resOf(m)]]),{didParseCell:d=>{if(d.section==="body"&&d.column.index===4){const v=d.cell.raw;d.cell.styles.textColor=v==="Vitória"?[26,143,76]:v==="Derrota"?[201,58,58]:[122,132,153];d.cell.styles.fontStyle="bold";d.cell.styles.fillColor=v==="Vitória"?[231,247,238]:v==="Derrota"?[252,235,236]:[242,244,248]}}});
   }
   if(det)ms.forEach((m,i)=>{
     doc.addPage();y=M;
