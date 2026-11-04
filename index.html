@@ -257,6 +257,72 @@ input, select, textarea { min-width:0; }
   .tabbar, .table { scroll-behavior:smooth; }
 }
 
+/* =========================================================
+   VISUAL V2: painel do time, perfil do jogador, acabamento
+   ========================================================= */
+h2{display:flex;align-items:center;gap:12px}
+h2:before{content:"";width:6px;height:.82em;border-radius:3px;background:linear-gradient(180deg,#4da0ff,#e6ad3c);flex:none}
+.kpi{position:relative}
+.kpi:before{content:"";position:absolute;left:0;top:0;width:100%;height:2px;background:linear-gradient(90deg,#1769ff,transparent)}
+.kpi .num{background:linear-gradient(180deg,#fff,#b9c8e6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi small{display:block;margin-top:4px;font-size:13px}
+tbody tr:nth-child(even) td{background:rgba(255,255,255,.018)}
+tbody tr:hover td{background:rgba(23,105,255,.09)}
+td.r{letter-spacing:.02em}
+::-webkit-scrollbar{height:8px;width:8px}::-webkit-scrollbar-thumb{background:#2c3d5c;border-radius:8px}
+.nt-elite{color:var(--gold)}.nt-bom{color:var(--win)}.nt-med{color:#4da0ff}.nt-baixo{color:var(--loss)}
+.chip{display:inline-block;min-width:40px;text-align:center;padding:1px 8px;border-radius:8px;font:800 18px "Barlow Condensed",sans-serif;background:rgba(255,255,255,.07)}
+.chip.nt-elite{background:rgba(230,173,60,.16)}.chip.nt-bom{background:rgba(53,211,154,.14)}.chip.nt-med{background:rgba(77,160,255,.14)}.chip.nt-baixo{background:rgba(255,101,119,.15)}
+.pc{border-top:3px solid var(--pc,#1769ff)}
+.pc[data-pos="Goleiro"]{--pc:#e6ad3c}.pc[data-pos="Defensor"]{--pc:#4da0ff}.pc[data-pos="Meio-campo"]{--pc:#35d39a}.pc[data-pos="Atacante"]{--pc:#ff6577}
+.pc .pos{color:var(--pc);text-transform:uppercase;letter-spacing:.08em;font-size:13px}
+.pc .leg{margin-top:12px}
+.spark{display:block;width:100%;height:auto;margin-top:2px}
+.pbtn{width:100%;margin-top:14px}
+.tpanel{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin-bottom:18px}
+.tp{background:linear-gradient(155deg,#151c2b,#0d111b);border:1px solid #29354b;border-radius:12px;padding:18px;box-shadow:0 10px 28px rgba(0,0,0,.14);min-width:0}
+.tp h3{font:700 13px Barlow,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+.donutw{display:flex;align-items:center;gap:16px}
+.donut{width:116px;flex:none}
+.donut text{font-family:"Barlow Condensed",sans-serif;font-weight:800;fill:#fff}
+.vedl{display:grid;gap:6px;font-size:14px;color:var(--muted)}.vedl b{font:800 22px "Barlow Condensed",sans-serif;color:var(--text);margin-right:6px}
+.stack{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--line);margin-top:16px}
+.stack i{display:block;height:100%}
+.tp .pills{margin:0 0 14px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px}
+.mini b{display:block;font:800 32px "Barlow Condensed",sans-serif;line-height:1}
+.mini span{font-size:12px;color:var(--muted)}
+.fact{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
+.fact:last-child{border-bottom:0}.fact b{color:var(--text);text-align:right;font-weight:600}
+dialog#pfl{border:1px solid #39445a;border-radius:16px;background:linear-gradient(155deg,#151c2b,#090d16);color:var(--text);padding:0;width:min(980px,96vw);max-height:92vh;overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+dialog#pfl::backdrop{background:rgba(2,4,9,.78);backdrop-filter:blur(3px)}
+body:has(dialog[open]){overflow:hidden}
+.pf{padding:26px;position:relative;border-top:4px solid var(--pc,#1769ff)}
+.pf-x{position:absolute;top:14px;right:14px;width:42px;padding:0;font-size:18px}
+.pf-h{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;padding-right:48px}
+.pf-h .pos{color:var(--pc);text-transform:uppercase;letter-spacing:.1em;font-size:14px}
+.pf-h h3{font-size:46px;line-height:1;text-transform:uppercase;overflow-wrap:anywhere}
+.pf-h .nick{margin-top:6px}
+.pf-big{font:800 76px "Barlow Condensed",sans-serif;line-height:.9;text-align:right}
+.pf-big small{display:block;font:600 13px Barlow,sans-serif;color:var(--muted)}
+.pf-grid{display:grid;grid-template-columns:minmax(0,290px) minmax(0,1fr);gap:22px;margin-top:20px}
+.pf-grid svg.rad{display:block;width:100%;max-width:290px;margin:0 auto}
+.pf-sec{margin-top:20px}.pf-sec:first-child{margin-top:0}
+.pf-sec h4{margin:0 0 10px;font:700 13px Barlow,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.pf-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px}
+.pf-s{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center}
+.pf-s b{display:block;font:800 26px "Barlow Condensed",sans-serif;line-height:1.1}
+.pf-s span{display:block;font-size:12px;color:var(--muted)}.pf-s small{display:block;font-size:11px;color:var(--muted);opacity:.8}
+.pf-note{color:var(--muted);font-size:13px;margin:8px 0 0}
+.pf .table table{min-width:460px}
+@media (prefers-reduced-motion:no-preference){.card,.tp{transition:transform .2s,border-color .2s}.card:hover,.tp:hover{transform:translateY(-2px);border-color:#3b5f99}}
+@media (max-width:760px){.kpis>.kpi:last-child:nth-child(odd){grid-column:1/-1}.pf{padding:18px 14px}.pf-h h3{font-size:32px}.pf-big{font-size:56px}.pf-grid{grid-template-columns:minmax(0,1fr)}.donut{width:96px}.tpanel{grid-template-columns:minmax(0,1fr)}}
+
+header.top .bar{background:transparent;border-radius:0;flex:initial}
+.hero h1 .nw{white-space:nowrap}
+.hero-crest{border-radius:20px;box-shadow:0 0 0 1px rgba(230,173,60,.4),0 18px 50px rgba(23,105,255,.22)}
+.card .spark{max-width:none;margin:2px 0 0}
+.tp .pf-note{margin-top:12px}
 </style>
 </head>
 <body>
@@ -272,7 +338,7 @@ input, select, textarea { min-width:0; }
 <main class="wrap">
   <div class="hero" data-tab="geral">
     <div class="hero-brand"><div class="hero-copy">
-      <h1>TSIIX E-SPORTS</h1>
+      <h1>TSIIX <span class="nw">E-SPORTS</span></h1>
       <p>Dados, desempenho e resultados do TSIIX. Explore as estatísticas individuais dos jogadores e acompanhe a evolução da equipe.</p>
     </div><img class="hero-crest" src="tsiix-escudo.jpeg" alt="Escudo oficial do TSIIX E-SPORTS"></div>
     <div class="kpis" id="kpis"></div>
@@ -388,6 +454,7 @@ input, select, textarea { min-width:0; }
 
   <section id="time" data-tab="geral">
     <h2>Estatísticas do time</h2>
+    <div class="tpanel" id="tpanel"></div>
     <div class="kpis" id="tkpis"></div>
   </section>
 
@@ -445,6 +512,7 @@ input, select, textarea { min-width:0; }
   </section>
 </main>
 <footer><div class="wrap">TSIIX E-SPORTS, time de FC27.</div></footer>
+<dialog id="pfl" aria-labelledby="pfltitle"><div class="pf" id="pfbody"></div></dialog>
 
 </div>
 <script>/* ====== CONFIGURAÇÃO DO SUPABASE (Project Settings > API) ====== */
@@ -519,7 +587,7 @@ function render(){
   $("matches").innerHTML=ms.length?ms.map((m,i)=>{const r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data)}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join(""):`<tr><td colspan="5">Nenhuma partida com esses filtros.</td></tr>`;
   const v=ms.filter(m=>resOf(m)==="V").length,gp=ms.reduce((s,m)=>s+m.pro,0),gc=ms.reduce((s,m)=>s+m.contra,0);
   CUR=ms;const ag=aggregate(ms,F.jog);
-  const k=[[ms.length,"partidas"],[ms.length?Math.round(v/ms.length*100)+"%":"0%","aproveitamento de vitórias"],[gp,"gols marcados"],[gc,"gols sofridos"],[STATE.real?ag.length:PLAYERS.length,"jogadores"]];
+  const k=[[ms.length,"partidas"],[ms.length?Math.round(v/ms.length*100)+"%":"0%","taxa de vitórias"],[gp,"gols marcados"],[gc,"gols sofridos"],[STATE.real?ag.length:PLAYERS.length,"jogadores"]];
   $("kpis").innerHTML=k.map(([n,l])=>`<div class="kpi"><div class="num">${n}</div><small>${l}</small></div>`).join("");
   if(STATE.real){
     $("tabs").hidden=true;$("players").className="";
@@ -883,7 +951,7 @@ function pcard(p,hist){
   const bars=seq.map((v,i)=>{const h=v/mx*24;return `<rect x="${i*w+w*.15}" y="${28-h}" width="${w*.7}" height="${h}" fill="var(--accent)"><title>${v} gols</title></rect>`}).join("");
   const C=[[p.j,"jogos"],[p.g,"gols"],[p.a,"assistências"],[p.mom,"melhor da partida"],[pct(p.w,p.j),"taxa de vitórias"],[pct(p.pm,p.pa),"passes certos",p.pm+" de "+p.pa],[pct(p.g,p.sh),"conversão de chutes",p.g+" de "+p.sh],[fx(gj),"gols/jogo"],[fx(aj),"assist./jogo"],[fx(gj+aj),"G+A/jogo"],[p.tm,"desarmes"],[pct(p.tm,p.ta),"desarmes certos",p.tm+" de "+p.ta],[p.cs,"jogos sem sofrer gol"],[p.min,"minutos"]];
   if(posOf(p)==="Goleiro")C.push([p.sv,"defesas"]);
-  return `<article class="card"><header><div><div class="pos">${esc(posOf(p))}</div><h3>${esc(p.nome)}</h3></div><div style="text-align:right">${ov?`<div class="nick">OVR ${ov}</div>`:""}<div class="ovr num">${nota.toFixed(1)}</div><div class="nick">nota média</div></div></header><div class="pst">${C.map(([v,l,s])=>`<div><b>${v}</b><span>${l}</span>${s?`<small>${s}</small>`:""}</div>`).join("")}</div><div class="leg" style="margin-top:12px">Gols nas últimas ${seq.length} partidas: <b>${seq.reduce((a,b)=>a+b,0)}</b></div><svg viewBox="0 0 100 28" role="img" aria-label="Gols por partida" style="width:100%;height:36px">${bars}</svg></article>`;
+  return `<article class="card pc" data-pos="${esc(posOf(p))}"><header><div><div class="pos">${esc(posOf(p))}</div><h3>${esc(p.nome)}</h3></div><div style="text-align:right">${ov?`<div class="nick">OVR ${ov}</div>`:""}<div class="ovr num ${ntc(nota)}">${nota.toFixed(1)}</div><div class="nick">nota média</div></div></header><div class="pst">${C.map(([v,l,s])=>`<div><b>${v}</b><span>${l}</span>${s?`<small>${s}</small>`:""}</div>`).join("")}</div><div class="leg" style="margin-top:12px">Gols nas últimas ${seq.length} partidas: <b>${seq.reduce((a,b)=>a+b,0)}</b></div><svg viewBox="0 0 100 28" role="img" aria-label="Gols por partida" style="width:100%;height:36px">${bars}</svg><div class="leg">Nota nas últimas partidas</div>${spark(hist.map(m=>m.jog.find(x=>x.nome===p.nome)).filter(Boolean).slice(-10).map(x=>x.nota).filter(t=>t>0))}<button type="button" class="ghost pbtn" data-pf="${esc(p.nome)}">Ver perfil completo</button></article>`;
 }
 function rosterHTML(ag){
   const tg=`<div class="tabs" id="rview">${[["cards","Cartões"],["tabela","Tabela"]].map(([v,l])=>`<button data-v="${v}" aria-pressed="${RV===v}">${l}</button>`).join("")}</div>`;
@@ -1124,6 +1192,92 @@ $("pmig").onclick=async()=>{
     pmsg("Enviando...");await persistNew(novos);await reloadAll();pmsg(novos.length+" partida(s) enviada(s) para o banco.")}
   catch(e){console.error(e);pmsg("Erro ao enviar: "+(e.message||e))}
 };
+
+/* ====== Visual v2: painel do time e perfil completo do jogador ====== */
+const ntc=n=>n>=8?"nt-elite":n>=7?"nt-bom":n>=6?"nt-med":"nt-baixo";
+const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+const sdev=a=>{if(a.length<2)return 0;const m=avg(a);return Math.sqrt(avg(a.map(x=>(x-m)**2)))};
+const clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const f1=v=>v.toFixed(1).replace(".",",");
+function spark(vals,W=140,H=36){
+  if(vals.length<2)return "";
+  const lo=Math.min(...vals)-.3,hi=Math.max(...vals)+.3,x=i=>2+i*(W-4)/(vals.length-1),y=v=>H-3-((v-lo)/(hi-lo||1))*(H-6);
+  const pts=vals.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" "),l=vals.length-1;
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução da nota nas últimas ${vals.length} partidas"><polyline points="${pts}" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${x(l).toFixed(1)}" cy="${y(vals[l]).toFixed(1)}" r="3" fill="var(--gold)"/></svg>`;
+}
+function donut(p){
+  const R=42,C=2*Math.PI*R;
+  return `<svg class="donut" viewBox="0 0 100 100" role="img" aria-label="Aproveitamento de ${p}%"><defs><linearGradient id="gdn" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4da0ff"/><stop offset="1" stop-color="#e6ad3c"/></linearGradient></defs><circle cx="50" cy="50" r="${R}" fill="none" stroke="var(--line)" stroke-width="9"/><circle cx="50" cy="50" r="${R}" fill="none" stroke="url(#gdn)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(C*p/100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)"/><text x="50" y="55" text-anchor="middle" font-size="28">${p}%</text><text x="50" y="70" text-anchor="middle" font-size="9" style="fill:var(--muted);font-weight:600;letter-spacing:.08em">APROVEIT.</text></svg>`;
+}
+function renderPanel(ms){
+  const el=$("tpanel");if(!el)return;
+  const n=ms.length;if(!n){el.innerHTML="";return}
+  const rs=ms.map(resOf),c=r=>rs.filter(x=>x===r).length,v=c("V"),e=c("E"),d=c("D");
+  const ap=Math.round((3*v+e)/(3*n)*100),gp=ms.reduce((s,m)=>s+m.pro,0),gc=ms.reduce((s,m)=>s+m.contra,0);
+  const f=rs[0];let run=0;while(run<n&&rs[run]===f)run++;
+  const old=rs.slice().reverse(),best=fn=>{let b=0,k=0;old.forEach(r=>{k=fn(r)?k+1:0;b=Math.max(b,k)});return b};
+  const cs=ms.filter(m=>m.contra===0).length,sg=gp-gc;
+  const bw=ms.reduce((a,m)=>(!a||m.pro-m.contra>a.pro-a.contra)?m:a,null),bl=ms.reduce((a,m)=>(!a||m.contra-m.pro>a.contra-a.pro)?m:a,null),mg=ms.reduce((a,m)=>(!a||m.pro>a.pro)?m:a,null);
+  const nm={V:"vitória",E:"empate",D:"derrota"},nmp={V:"vitórias",E:"empates",D:"derrotas"};
+  const last=ms.slice(0,5).reverse(),pc=x=>Math.round(x/n*100);
+  const pill=m=>{const r=resOf(m);return `<span class="pill ${r}" title="${esc(m.data)}, ${esc(m.adv)} ${m.pro} x ${m.contra}" aria-label="${RN[r]} contra ${esc(m.adv)}, ${m.pro} a ${m.contra}">${r}</span>`};
+  const fact=(l,t)=>`<div class="fact"><span>${l}</span><b>${t}</b></div>`;
+  const sc=m=>m?`${m.pro} x ${m.contra} ${esc(m.adv)}`:"—";
+  el.innerHTML=
+  `<article class="tp"><h3>Aproveitamento</h3><div class="donutw">${donut(ap)}<div class="vedl"><div><b style="color:var(--win)">${v}</b>vitórias</div><div><b>${e}</b>empates</div><div><b style="color:var(--loss)">${d}</b>derrotas</div></div></div><div class="stack" role="img" aria-label="${v} vitórias, ${e} empates, ${d} derrotas"><i style="width:${pc(v)}%;background:var(--win)"></i><i style="width:${pc(e)}%;background:var(--draw)"></i><i style="width:${pc(d)}%;background:var(--loss)"></i></div><p class="pf-note">Pontos conquistados: 3 por vitória e 1 por empate.</p></article>`+
+  `<article class="tp"><h3>Forma e sequências</h3><div class="pills">${last.map(pill).join("")}</div>${fact("Sequência atual",run+" "+(run>1?nmp[f]:nm[f]))}${fact("Maior sequência de vitórias",best(r=>r==="V"))}${fact("Maior sequência sem perder",best(r=>r!=="D"))}</article>`+
+  `<article class="tp"><h3>Ataque e defesa</h3><div class="mini"><div><b>${f1(gp/n)}</b><span>gols marcados por jogo</span></div><div><b>${f1(gc/n)}</b><span>gols sofridos por jogo</span></div><div><b style="color:${sg>=0?"var(--win)":"var(--loss)"}">${sg>0?"+":""}${sg}</b><span>saldo de gols</span></div><div><b>${pc(cs)}%</b><span>jogos sem sofrer gol (${cs})</span></div></div></article>`+
+  `<article class="tp"><h3>Marcos do período</h3>${fact("Maior vitória",sc(bw&&bw.pro>bw.contra?bw:null))}${fact("Pior derrota",sc(bl&&bl.contra>bl.pro?bl:null))}${fact("Mais gols marcados",mg&&mg.pro>0?sc(mg):"—")}${fact("Partidas analisadas",n)}</article>`;
+}
+const _rt=renderTeam;renderTeam=function(ms){_rt(ms);renderPanel(ms)};
+
+function jogosDe(nome){return CUR.slice().reverse().map(m=>({m,p:m.jog.find(x=>x.nome===nome)})).filter(x=>x.p)}
+function radar2(L,V,col){
+  const c=100,R=74,N=L.length,pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/N,r=R*v/100;return [c+r*Math.cos(a),c+r*Math.sin(a)]};
+  const ring=v=>L.map((_,i)=>pt(i,v).join(",")).join(" "),shape=V.map((v,i)=>pt(i,v).join(",")).join(" ");
+  const lb=L.map((k,i)=>{const [x,y]=pt(i,122);return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" font-size="10.5" fill="var(--muted)">${k}</text>`}).join("");
+  const dots=V.map((v,i)=>{const [x,y]=pt(i,v);return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="${col}"/>`}).join("");
+  return `<svg class="rad" viewBox="-22 -6 244 212" role="img" aria-label="Perfil de desempenho: ${L.map((k,i)=>k+" "+Math.round(V[i])).join(", ")}"><polygon points="${ring(100)}" fill="none" stroke="var(--line)"/><polygon points="${ring(66)}" fill="none" stroke="var(--line)"/><polygon points="${ring(33)}" fill="none" stroke="var(--line)"/><polygon points="${shape}" fill="${col}" fill-opacity=".25" stroke="${col}" stroke-width="2"/>${dots}${lb}</svg>`;
+}
+function linhaNotas(G){
+  const L=G.slice(-15),n=L.length;if(n<2)return "";
+  const W=420,H=150,pd=26,st=(W-2*pd)/(n-1),v=L.map(x=>x.p.nota),m=avg(v),lo=Math.floor(Math.min(...v,m)-.5),hi=Math.ceil(Math.max(...v,m)+.5);
+  const px=i=>pd+i*st,yy=t=>H-pd-((t-lo)/(hi-lo||1))*(H-2*pd-6);
+  const pts=v.map((t,i)=>px(i).toFixed(1)+","+yy(t).toFixed(1)).join(" ");
+  const dots=v.map((t,i)=>`<circle cx="${px(i).toFixed(1)}" cy="${yy(t).toFixed(1)}" r="3.6" fill="var(--gold)"><title>${esc(L[i].m.data)} contra ${esc(L[i].m.adv)}: nota ${f1(t)}</title></circle>`).join("");
+  const k=Math.ceil(n/7),xl=L.map((x,i)=>i%k===0?`<text x="${px(i).toFixed(1)}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--muted)">${esc(x.m.data)}</text>`:"").join("");
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Nota do jogador nas últimas ${n} partidas"><line x1="${pd}" y1="${H-pd}" x2="${W-pd}" y2="${H-pd}" stroke="var(--line)"/><line x1="${pd}" y1="${yy(m).toFixed(1)}" x2="${W-pd}" y2="${yy(m).toFixed(1)}" stroke="var(--accent)" stroke-dasharray="4 4"/><text x="${W-pd}" y="${(yy(m)-5).toFixed(1)}" font-size="10" text-anchor="end" fill="#4da0ff">média ${f1(m)}</text><polyline points="${pts}" fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linejoin="round"/>${dots}${xl}</svg>`;
+}
+function openProfile(nome){
+  const ag=aggregate(CUR,nome)[0],dlg=$("pfl");if(!ag||!dlg)return;
+  const G=jogosDe(nome),pos=posOf(ag),gk=pos==="Goleiro",df=gk||pos==="Defensor",j=ag.j,nota=ag.n/j;
+  const nots=G.map(x=>x.p.nota).filter(t=>t>0),sd=sdev(nots),l5=nots.slice(-5),tend=l5.length>=3?avg(l5)-avg(nots):0;
+  const tg=G.reduce((s,x)=>s+x.m.pro,0),ov=OVR[nome],pp=ag.pa?ag.pm/ag.pa*100:0,tp=ag.ta?ag.tm/ag.ta*100:0;
+  const pj=G.filter(x=>x.p.nota>0),bst=pj.reduce((a,x)=>(!a||x.p.nota>a.p.nota)?x:a,null),wst=pj.reduce((a,x)=>(!a||x.p.nota<a.p.nota)?x:a,null);
+  const reg=clamp(100-sd*60),nt=clamp((nota-5)*20);
+  const L=gk?["Defesas","Sem sofrer","Passes","Nota","Regular.","Vitórias"]:["Gols","Assist.","Passes","Desarmes","Nota","Regular."];
+  const V=gk?[clamp(ag.sv/j/6*100),clamp(ag.cs/j*100),pp,nt,reg,clamp(ag.w/j*100)]:[clamp(ag.g/j/1.2*100),clamp(ag.a/j/.8*100),pp,tp,nt,reg];
+  const S=(v,l,s)=>`<div class="pf-s"><b>${v}</b><span>${l}</span>${s?`<small>${s}</small>`:""}</div>`;
+  const geral=[S(j,"jogos"),S(ag.min,"minutos",f1(ag.min/j)+" por jogo"),S(pct(ag.w,j),"taxa de vitórias",ag.w+" de "+j),S(ag.mom,"melhor da partida"),S(ag.rc,"cartões vermelhos"),S(f1(sd),"oscilação da nota","menor = mais regular")];
+  const ataque=[S(ag.g,"gols",fx(ag.g/j)+" por jogo"),S(ag.a,"assistências",fx(ag.a/j)+" por jogo"),S(ag.g+ag.a,"gols + assist.",fx((ag.g+ag.a)/j)+" por jogo"),S(ag.sh,"chutes",fx(ag.sh/j)+" por jogo"),S(pct(ag.g,ag.sh),"conversão de chutes",ag.g+" de "+ag.sh),S(tg?Math.round((ag.g+ag.a)/tg*100)+"%":"—","participação nos gols","G+A sobre os gols do time")];
+  const defesa=[S(pct(ag.pm,ag.pa),"passes certos",ag.pm+" de "+ag.pa),S(pct(ag.tm,ag.ta),"desarmes certos",ag.tm+" de "+ag.ta)];if(df)defesa.push(S(ag.cs,"jogos sem sofrer gol"),S(ag.gc,"gols sofridos",fx(ag.gc/j)+" por jogo"));
+  if(gk)defesa.push(S(ag.sv,"defesas",fx(ag.sv/j)+" por jogo"));
+  const sec=(t,a)=>`<div class="pf-sec"><h4>${t}</h4><div class="pf-stats">${a.join("")}</div></div>`;
+  const rows=G.slice(-8).reverse().map(x=>{const r=resOf(x.m),p=x.p;return `<tr><td>${esc(x.m.data)}</td><td>${esc(x.m.adv)}</td><td class="r ${r}">${x.m.pro} x ${x.m.contra}</td><td><span class="chip ${ntc(p.nota)}">${p.nota?f1(p.nota):"—"}</span></td><td>${p.gols}</td><td>${p.ast}</td><td>${p.mom?"★":""}</td></tr>`}).join("");
+  const tx=tend>.15?`<span style="color:var(--win)">▲ em alta (+${f1(tend)})</span>`:tend<-.15?`<span style="color:var(--loss)">▼ em queda (${f1(tend)})</span>`:"estável";
+  const col=({Goleiro:"#e6ad3c",Defensor:"#4da0ff","Meio-campo":"#35d39a",Atacante:"#ff6577"})[pos]||"#4da0ff";
+  $("pfbody").style.setProperty("--pc",col);
+  $("pfbody").innerHTML=`<button type="button" class="ghost pf-x" data-close aria-label="Fechar perfil">✕</button>
+  <div class="pf-h"><div><div class="pos">${esc(pos)}</div><h3 id="pfltitle">${esc(nome)}</h3><div class="nick">${ov?`OVR ${ov} · `:""}${j} jogo${j>1?"s":""} no período filtrado · forma recente: ${tx}</div></div><div class="pf-big ${ntc(nota)}">${f1(nota)}<small>nota média</small></div></div>
+  <div class="pf-grid"><div>${radar2(L,V,col)}<p class="pf-note">Perfil calculado a partir das partidas: cada eixo vai de 0 a 100 (gols e assistências por jogo, % de passes e desarmes certos, nota e regularidade).</p></div>
+  <div>${sec("Resumo",geral)}${gk?"":sec("Ataque",ataque)}${sec(gk?"Goleiro e passes":df?"Defesa e passes":"Passes e defesa",defesa)}</div></div>
+  <div class="pf-sec"><h4>Evolução da nota</h4>${linhaNotas(G)||'<p class="hint">Poucas partidas para mostrar a evolução.</p>'}
+  <p class="pf-note">${bst?`Melhor nota: <b>${f1(bst.p.nota)}</b> contra ${esc(bst.m.adv)} (${esc(bst.m.data)}). `:""}${wst&&wst!==bst?`Pior nota: <b>${f1(wst.p.nota)}</b> contra ${esc(wst.m.adv)} (${esc(wst.m.data)}).`:""}</p></div>
+  <div class="pf-sec"><h4>Últimas partidas</h4><div class="table"><table><thead><tr><th>Data</th><th>Adversário</th><th>Placar</th><th>Nota</th><th>Gols</th><th>Assist.</th><th>MVP</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  dlg.showModal();dlg.scrollTop=0;
+}
+$("pfl").addEventListener("click",e=>{if(e.target===$("pfl")||e.target.closest("[data-close]"))$("pfl").close()});
+$("players").addEventListener("click",e=>{const b=e.target.closest("[data-pf]");if(b)openProfile(b.dataset.pf)});
 
 try{MODO=localStorage.getItem("tsiix.modo")||MODO}catch(e){}$("modo").value=MODO;
 function startView(){
