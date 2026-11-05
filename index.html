@@ -84,7 +84,6 @@ header.top nav{display:none}
 .rep>summary{cursor:pointer;padding:14px 16px;font:800 22px "Barlow Condensed",sans-serif}
 .rep>summary small{font:500 14px Barlow,sans-serif;color:var(--muted);margin-left:10px}
 .rep .in{padding:0 16px 16px}.rep .kpis{margin:0 0 14px}.rep .kpi .num{font-size:30px}
-.match-day{margin-bottom:12px}.match-day .in>.table{margin-top:0}.match-day>summary{display:list-item}.match-day>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
 .modo{display:flex;justify-content:flex-end;padding-top:8px;color:var(--muted);font-size:14px}
 .awards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:14px 0}
 .aw{border:1px solid var(--line);border-radius:6px;padding:10px 12px}
@@ -95,6 +94,18 @@ header.top nav{display:none}
 .leg{font-size:13px;color:var(--muted);margin:4px 0}.leg span{margin-right:12px}
 .grp{margin:22px 0 10px;font-size:26px}.grp small{font:500 14px Barlow,sans-serif;color:var(--muted);margin-left:10px}
 #tkpis{margin-top:0}#tkpis .num{font-size:30px}
+.match-days{display:grid;gap:10px;margin-top:10px}
+.match-day{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.match-day>summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:13px 16px;font:800 20px "Barlow Condensed",sans-serif}
+.match-day>summary::-webkit-details-marker{display:none}
+.match-day>summary::before{content:"▶";font:700 14px Barlow,sans-serif;color:var(--text);transition:transform .15s}
+.match-day[open]>summary::before{transform:rotate(90deg)}
+.match-day>summary small{font:500 14px Barlow,sans-serif;color:var(--muted)}
+.match-day .day-content{border-top:1px solid var(--line)}
+.match-day .day-content .table{margin:0}
+.match-day .day-content table{margin:0}
+.match-day .day-content th:first-child,.match-day .day-content td:first-child{padding-left:16px}
+
 nav{white-space:nowrap;overflow-x:auto}
 .clk{cursor:pointer}.clk:hover td,.clk.sel td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .detail{margin-top:20px}.detail .table{margin-top:12px}
@@ -496,10 +507,7 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
       <input id="fadv" placeholder="Buscar adversário" aria-label="Buscar adversário">
       <select id="fjog" aria-label="Filtrar por jogador"><option value="">Todos os jogadores</option></select>
     </div>
-    <div class="table"><table>
-      <thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th></th></tr></thead>
-      <tbody id="matches"></tbody>
-    </table></div>
+    <div id="matches" class="match-days" aria-label="Resultados agrupados por data"></div>
     <div id="detalhe" class="detail" aria-live="polite"></div>
   </section>
 
@@ -580,35 +588,32 @@ let STATE={matches:MATCHES.map(m=>({...m,jog:[]})),real:false,raw:null};
 const F={res:"",adv:"",jog:""};
 
 function filtered(){return STATE.matches.filter(m=>(!F.res||resOf(m)===F.res)&&(!F.adv||m.adv.toLowerCase().includes(F.adv.toLowerCase()))&&(!F.jog||m.jog.some(p=>p.nome===F.jog)))}
+function matchDayKey(m){
+  if(m.ts){const d=new Date(m.ts*1000),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())}
+  const v=String(m.data||"");const a=v.match(/^(\d{2})\/(\d{2})(?:\/(\d{4}))?$/);
+  if(a)return (a[3]||String(new Date().getFullYear()))+"-"+a[2]+"-"+a[1];
+  return "0000-00-00";
+}
+function matchDayLabel(key,items){
+  if(key==="0000-00-00")return "Sem data";
+  const [y,mo,da]=key.split("-").map(Number),d=new Date(y,mo-1,da);
+  return d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+}
+function groupMatchesByDay(ms){
+  const groups=new Map();ms.forEach(m=>{const k=matchDayKey(m);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(m)});
+  return [...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
+}
 let CUR=[],SELM=null;
 function aggregate(ms,only){const a={};ms.forEach(m=>m.jog.forEach(p=>{if(only&&p.nome!==only)return;const x=a[p.nome]||(a[p.nome]={nome:p.nome,j:0,g:0,a:0,n:0,sh:0,pm:0,pa:0,tm:0,ta:0,mom:0,sv:0,min:0,gc:0,cs:0,rc:0,ps:{},w:0});x.j++;x.w+=resOf(m)==="V"?1:0;x.g+=p.gols;x.a+=p.ast;x.n+=p.nota;x.sh+=p.sh;x.pm+=p.pm;x.pa+=p.pa;x.tm+=p.tm;x.ta+=p.ta;x.mom+=p.mom;x.sv+=p.sv;x.min+=p.min;x.gc+=p.gc;x.cs+=p.cs;x.rc+=p.rc;if(p.pos)x.ps[p.pos]=(x.ps[p.pos]||0)+1}));return Object.values(a).sort((x,y)=>y.g-x.g||y.a-x.a)}
 
 function render(){
   const ms=filtered();if(!ms.includes(SELM))SELM=STATE.real&&ms.length?ms[0]:null;
-  const matchEl=$("matches");
-  // Preserva os dias abertos quando a tela é atualizada (ex.: ao selecionar uma partida).
-  const openedDays=new Set([...matchEl.querySelectorAll('details[data-day][open]')].map(x=>x.dataset.day));
-  const hadGrouped=matchEl.dataset.grouped==="1";
-  if(ms.length){
-    const byDay={};
-    ms.forEach(m=>{const key=grpKey(m,"dia");(byDay[key]=byDay[key]||[]).push(m)});
-    const days=Object.keys(byDay).sort().reverse();
-    matchEl.innerHTML=days.map((day,dayIndex)=>{
-      const games=byDay[day].slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
-      const wins=games.filter(m=>resOf(m)==="V").length;
-      const draws=games.filter(m=>resOf(m)==="E").length;
-      const losses=games.filter(m=>resOf(m)==="D").length;
-      const goalsFor=games.reduce((sum,m)=>sum+m.pro,0);
-      const goalsAgainst=games.reduce((sum,m)=>sum+m.contra,0);
-      const isOpen=hadGrouped?openedDays.has(day):dayIndex===0;
-      const rows=games.map(m=>{const i=ms.indexOf(m),r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data)}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join("");
-      return `<details class="rep match-day" data-day="${esc(day)}"${isOpen?" open":""}><summary>${esc(grpLabel(day,"dia"))}<small>${games.length} partida${games.length!==1?"s":""}, ${wins}V ${draws}E ${losses}D, gols ${goalsFor} x ${goalsAgainst}</small></summary><div class="in"><div class="table"><table><thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></div></details>`;
-    }).join("");
-    matchEl.dataset.grouped="1";
-  }else{
-    matchEl.innerHTML='<div class="table"><table><tbody><tr><td>Nenhuma partida com esses filtros.</td></tr></tbody></table></div>';
-    matchEl.dataset.grouped="1";
-  }
+  const groups=groupMatchesByDay(ms);
+  $("matches").innerHTML=groups.length?groups.map(([day,G])=>{
+    const v=G.filter(m=>resOf(m)==="V").length,e=G.filter(m=>resOf(m)==="E").length,d=G.filter(m=>resOf(m)==="D").length,gp=G.reduce((a,m)=>a+m.pro,0),gc=G.reduce((a,m)=>a+m.contra,0);
+    const rows=G.map(m=>{const i=ms.indexOf(m),r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data||"—")}</td><td>${esc(m.comp||"—")}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join("");
+    return `<details class="match-day"><summary>${esc(matchDayLabel(day,G))}<small>${G.length} partida${G.length!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+  }).join(""):'<p class="hint">Nenhuma partida com esses filtros.</p>';
   const v=ms.filter(m=>resOf(m)==="V").length,gp=ms.reduce((s,m)=>s+m.pro,0),gc=ms.reduce((s,m)=>s+m.contra,0);
   CUR=ms;const ag=aggregate(ms,F.jog);
   const k=[[ms.length,"partidas"],[ms.length?Math.round(v/ms.length*100)+"%":"0%","taxa de vitórias"],[gp,"gols marcados"],[gc,"gols sofridos"],[STATE.real?ag.length:PLAYERS.length,"jogadores"]];
@@ -966,11 +971,16 @@ $("replist").onclick=async e=>{const b=e.target.closest("[data-rc]");if(!b)retur
 $("rgrp").onchange=renderReports;
 $("modo").onchange=e=>{MODO=e.target.value;try{localStorage.setItem("tsiix.modo",MODO)}catch(err){}refresh()};
 function renderH2H(){
-  const el=$("h2h"),g={};
+  const el=$("h2h");
   if(!STATE.real){el.innerHTML='<p class="hint" style="padding:12px">Carregue as partidas para ver o confronto direto.</p>';return}
-  STATE.matches.forEach(m=>{const x=g[m.adv]||(g[m.adv]={adv:m.adv,n:0,v:0,e:0,d:0,gp:0,gc:0,ts:0});x.n++;x[resOf(m).toLowerCase()]++;x.gp+=m.pro;x.gc+=m.contra;x.ts=Math.max(x.ts,m.ts||0)});
-  const L=Object.values(g).sort((a,b)=>b.n-a.n||b.ts-a.ts);
-  el.innerHTML=L.length?`<table><thead><tr><th>Adversário</th><th>Jogos</th><th>V</th><th>E</th><th>D</th><th>Gols</th><th>Saldo</th><th>Aproveit.</th><th>Último jogo</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.adv)}</td><td>${x.n}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp} x ${x.gc}</td><td>${x.gp-x.gc>0?"+":""}${x.gp-x.gc}</td><td>${Math.round((3*x.v+x.e)/(3*x.n)*100)}%</td><td>${x.ts?new Date(x.ts*1000).toLocaleDateString("pt-BR"):"—"}</td></tr>`).join("")}</tbody></table>`:'<p class="hint" style="padding:12px">Sem partidas na modalidade escolhida.</p>';
+  const groups=groupMatchesByDay(STATE.matches);
+  if(!groups.length){el.innerHTML='<p class="hint" style="padding:12px">Sem partidas na modalidade escolhida.</p>';return}
+  el.innerHTML=groups.map(([day,G])=>{
+    const byAdv={};G.forEach(m=>{const x=byAdv[m.adv]||(byAdv[m.adv]={adv:m.adv,n:0,v:0,e:0,d:0,gp:0,gc:0,ts:0});x.n++;x[resOf(m).toLowerCase()]++;x.gp+=m.pro;x.gc+=m.contra;x.ts=Math.max(x.ts,m.ts||0)});
+    const L=Object.values(byAdv).sort((a,b)=>b.n-a.n||a.adv.localeCompare(b.adv));
+    const n=G.length,v=G.filter(m=>resOf(m)==="V").length,e=G.filter(m=>resOf(m)==="E").length,d=G.filter(m=>resOf(m)==="D").length,gp=G.reduce((a,m)=>a+m.pro,0),gc=G.reduce((a,m)=>a+m.contra,0);
+    return `<details class="match-day"><summary>${esc(matchDayLabel(day,G))}<small>${n} partida${n!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Adversário</th><th>Jogos</th><th>V</th><th>E</th><th>D</th><th>Gols</th><th>Saldo</th><th>Aproveit.</th><th>Último jogo</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.adv)}</td><td>${x.n}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp} x ${x.gc}</td><td>${x.gp-x.gc>0?"+":""}${x.gp-x.gc}</td><td>${Math.round((3*x.v+x.e)/(3*x.n)*100)}%</td><td>${x.ts?new Date(x.ts*1000).toLocaleDateString("pt-BR"):esc(G[0].data||"—")}</td></tr>`).join("")}</tbody></table></div></details>`;
+  }).join("");
 }
 
 let RV="cards",OVR={};
