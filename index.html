@@ -84,6 +84,7 @@ header.top nav{display:none}
 .rep>summary{cursor:pointer;padding:14px 16px;font:800 22px "Barlow Condensed",sans-serif}
 .rep>summary small{font:500 14px Barlow,sans-serif;color:var(--muted);margin-left:10px}
 .rep .in{padding:0 16px 16px}.rep .kpis{margin:0 0 14px}.rep .kpi .num{font-size:30px}
+.match-day{margin-bottom:12px}.match-day .in>.table{margin-top:0}.match-day>summary{display:list-item}.match-day>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
 .modo{display:flex;justify-content:flex-end;padding-top:8px;color:var(--muted);font-size:14px}
 .awards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:14px 0}
 .aw{border:1px solid var(--line);border-radius:6px;padding:10px 12px}
@@ -584,7 +585,30 @@ function aggregate(ms,only){const a={};ms.forEach(m=>m.jog.forEach(p=>{if(only&&
 
 function render(){
   const ms=filtered();if(!ms.includes(SELM))SELM=STATE.real&&ms.length?ms[0]:null;
-  $("matches").innerHTML=ms.length?ms.map((m,i)=>{const r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data)}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join(""):`<tr><td colspan="5">Nenhuma partida com esses filtros.</td></tr>`;
+  const matchEl=$("matches");
+  // Preserva os dias abertos quando a tela é atualizada (ex.: ao selecionar uma partida).
+  const openedDays=new Set([...matchEl.querySelectorAll('details[data-day][open]')].map(x=>x.dataset.day));
+  const hadGrouped=matchEl.dataset.grouped==="1";
+  if(ms.length){
+    const byDay={};
+    ms.forEach(m=>{const key=grpKey(m,"dia");(byDay[key]=byDay[key]||[]).push(m)});
+    const days=Object.keys(byDay).sort().reverse();
+    matchEl.innerHTML=days.map((day,dayIndex)=>{
+      const games=byDay[day].slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+      const wins=games.filter(m=>resOf(m)==="V").length;
+      const draws=games.filter(m=>resOf(m)==="E").length;
+      const losses=games.filter(m=>resOf(m)==="D").length;
+      const goalsFor=games.reduce((sum,m)=>sum+m.pro,0);
+      const goalsAgainst=games.reduce((sum,m)=>sum+m.contra,0);
+      const isOpen=hadGrouped?openedDays.has(day):dayIndex===0;
+      const rows=games.map(m=>{const i=ms.indexOf(m),r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data)}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join("");
+      return `<details class="rep match-day" data-day="${esc(day)}"${isOpen?" open":""}><summary>${esc(grpLabel(day,"dia"))}<small>${games.length} partida${games.length!==1?"s":""}, ${wins}V ${draws}E ${losses}D, gols ${goalsFor} x ${goalsAgainst}</small></summary><div class="in"><div class="table"><table><thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></div></details>`;
+    }).join("");
+    matchEl.dataset.grouped="1";
+  }else{
+    matchEl.innerHTML='<div class="table"><table><tbody><tr><td>Nenhuma partida com esses filtros.</td></tr></tbody></table></div>';
+    matchEl.dataset.grouped="1";
+  }
   const v=ms.filter(m=>resOf(m)==="V").length,gp=ms.reduce((s,m)=>s+m.pro,0),gc=ms.reduce((s,m)=>s+m.contra,0);
   CUR=ms;const ag=aggregate(ms,F.jog);
   const k=[[ms.length,"partidas"],[ms.length?Math.round(v/ms.length*100)+"%":"0%","taxa de vitórias"],[gp,"gols marcados"],[gc,"gols sofridos"],[STATE.real?ag.length:PLAYERS.length,"jogadores"]];
