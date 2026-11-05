@@ -603,18 +603,19 @@ function groupMatchesByDay(ms){
   const groups=new Map();ms.forEach(m=>{const k=matchDayKey(m);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(m)});
   return [...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
 }
-function openDays(sel){const p=[...document.querySelectorAll(sel+" details.match-day")];return p.length?new Set(p.filter(d=>d.open).map(d=>d.dataset.day)):null}
+const DAYUSR={};
+document.addEventListener("click",e=>{const sm=e.target.closest("details.match-day>summary");if(!sm)return;const d=sm.parentElement;DAYUSR[d.parentElement.id+"|"+d.dataset.day]=!d.open});
+function dayOpen(box,day,gi){const k=box+"|"+day;return k in DAYUSR?DAYUSR[k]:gi===0}
 let CUR=[],SELM=null;
 function aggregate(ms,only){const a={};ms.forEach(m=>m.jog.forEach(p=>{if(only&&p.nome!==only)return;const x=a[p.nome]||(a[p.nome]={nome:p.nome,j:0,g:0,a:0,n:0,sh:0,pm:0,pa:0,tm:0,ta:0,mom:0,sv:0,min:0,gc:0,cs:0,rc:0,ps:{},w:0});x.j++;x.w+=resOf(m)==="V"?1:0;x.g+=p.gols;x.a+=p.ast;x.n+=p.nota;x.sh+=p.sh;x.pm+=p.pm;x.pa+=p.pa;x.tm+=p.tm;x.ta+=p.ta;x.mom+=p.mom;x.sv+=p.sv;x.min+=p.min;x.gc+=p.gc;x.cs+=p.cs;x.rc+=p.rc;if(p.pos)x.ps[p.pos]=(x.ps[p.pos]||0)+1}));return Object.values(a).sort((x,y)=>y.g-x.g||y.a-x.a)}
 
 function render(){
   const ms=filtered();if(!ms.includes(SELM))SELM=STATE.real&&ms.length?ms[0]:null;
   const groups=groupMatchesByDay(ms);
-  const od=openDays("#matches");
   $("matches").innerHTML=groups.length?groups.map(([day,G],gi)=>{
     const v=G.filter(m=>resOf(m)==="V").length,e=G.filter(m=>resOf(m)==="E").length,d=G.filter(m=>resOf(m)==="D").length,gp=G.reduce((a,m)=>a+m.pro,0),gc=G.reduce((a,m)=>a+m.contra,0);
     const rows=G.map(m=>{const i=ms.indexOf(m),r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data||"—")}</td><td>${esc(m.comp||"—")}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join("");
-    return `<details class="match-day" data-day="${esc(day)}"${(od?od.has(day):gi===0)?" open":""}><summary>${esc(matchDayLabel(day,G))}<small>${G.length} partida${G.length!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+    return `<details class="match-day" data-day="${esc(day)}"${dayOpen("matches",day,gi)?" open":""}><summary>${esc(matchDayLabel(day,G))}<small>${G.length} partida${G.length!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
   }).join(""):'<p class="hint">Nenhuma partida com esses filtros.</p>';
   const v=ms.filter(m=>resOf(m)==="V").length,gp=ms.reduce((s,m)=>s+m.pro,0),gc=ms.reduce((s,m)=>s+m.contra,0);
   CUR=ms;const ag=aggregate(ms,F.jog).filter(p=>{const r=REG[String(p.nome||"").toLowerCase()];return !r||r.active!==false});
@@ -980,12 +981,11 @@ function renderH2H(){
   if(!STATE.real){el.innerHTML='<p class="hint" style="padding:12px">Carregue as partidas para ver o confronto direto.</p>';return}
   const groups=groupMatchesByDay(STATE.matches);
   if(!groups.length){el.innerHTML='<p class="hint" style="padding:12px">Sem partidas na modalidade escolhida.</p>';return}
-  const od=openDays("#h2h");
   el.innerHTML=groups.map(([day,G],gi)=>{
     const byAdv={};G.forEach(m=>{const x=byAdv[m.adv]||(byAdv[m.adv]={adv:m.adv,n:0,v:0,e:0,d:0,gp:0,gc:0,ts:0});x.n++;x[resOf(m).toLowerCase()]++;x.gp+=m.pro;x.gc+=m.contra;x.ts=Math.max(x.ts,m.ts||0)});
     const L=Object.values(byAdv).sort((a,b)=>b.n-a.n||a.adv.localeCompare(b.adv));
     const n=G.length,v=G.filter(m=>resOf(m)==="V").length,e=G.filter(m=>resOf(m)==="E").length,d=G.filter(m=>resOf(m)==="D").length,gp=G.reduce((a,m)=>a+m.pro,0),gc=G.reduce((a,m)=>a+m.contra,0);
-    return `<details class="match-day" data-day="${esc(day)}"${(od?od.has(day):gi===0)?" open":""}><summary>${esc(matchDayLabel(day,G))}<small>${n} partida${n!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Adversário</th><th>Jogos</th><th>V</th><th>E</th><th>D</th><th>Gols</th><th>Saldo</th><th>Aproveit.</th><th>Último jogo</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.adv)}</td><td>${x.n}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp} x ${x.gc}</td><td>${x.gp-x.gc>0?"+":""}${x.gp-x.gc}</td><td>${Math.round((3*x.v+x.e)/(3*x.n)*100)}%</td><td>${x.ts?new Date(x.ts*1000).toLocaleDateString("pt-BR"):esc(G[0].data||"—")}</td></tr>`).join("")}</tbody></table></div></details>`;
+    return `<details class="match-day" data-day="${esc(day)}"${dayOpen("h2h",day,gi)?" open":""}><summary>${esc(matchDayLabel(day,G))}<small>${n} partida${n!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Adversário</th><th>Jogos</th><th>V</th><th>E</th><th>D</th><th>Gols</th><th>Saldo</th><th>Aproveit.</th><th>Último jogo</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.adv)}</td><td>${x.n}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp} x ${x.gc}</td><td>${x.gp-x.gc>0?"+":""}${x.gp-x.gc}</td><td>${Math.round((3*x.v+x.e)/(3*x.n)*100)}%</td><td>${x.ts?new Date(x.ts*1000).toLocaleDateString("pt-BR"):esc(G[0].data||"—")}</td></tr>`).join("")}</tbody></table></div></details>`;
   }).join("");
 }
 
