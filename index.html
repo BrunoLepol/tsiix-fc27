@@ -94,6 +94,18 @@ header.top nav{display:none}
 .leg{font-size:13px;color:var(--muted);margin:4px 0}.leg span{margin-right:12px}
 .grp{margin:22px 0 10px;font-size:26px}.grp small{font:500 14px Barlow,sans-serif;color:var(--muted);margin-left:10px}
 #tkpis{margin-top:0}#tkpis .num{font-size:30px}
+.match-days{display:grid;gap:10px;margin-top:10px}
+.match-day{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.match-day>summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:13px 16px;font:800 20px "Barlow Condensed",sans-serif}
+.match-day>summary::-webkit-details-marker{display:none}
+.match-day>summary::before{content:"▶";font:700 14px Barlow,sans-serif;color:var(--text);transition:transform .15s}
+.match-day[open]>summary::before{transform:rotate(90deg)}
+.match-day>summary small{font:500 14px Barlow,sans-serif;color:var(--muted)}
+.match-day .day-content{border-top:1px solid var(--line)}
+.match-day .day-content .table{margin:0}
+.match-day .day-content table{margin:0}
+.match-day .day-content th:first-child,.match-day .day-content td:first-child{padding-left:16px}
+
 nav{white-space:nowrap;overflow-x:auto}
 .clk{cursor:pointer}.clk:hover td,.clk.sel td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
 .detail{margin-top:20px}.detail .table{margin-top:12px}
@@ -495,10 +507,7 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
       <input id="fadv" placeholder="Buscar adversário" aria-label="Buscar adversário">
       <select id="fjog" aria-label="Filtrar por jogador"><option value="">Todos os jogadores</option></select>
     </div>
-    <div class="table"><table>
-      <thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th></th></tr></thead>
-      <tbody id="matches"></tbody>
-    </table></div>
+    <div id="matches" class="match-days" aria-label="Resultados agrupados por data"></div>
     <div id="detalhe" class="detail" aria-live="polite"></div>
   </section>
 
@@ -579,14 +588,37 @@ let STATE={matches:MATCHES.map(m=>({...m,jog:[]})),real:false,raw:null};
 const F={res:"",adv:"",jog:""};
 
 function filtered(){return STATE.matches.filter(m=>(!F.res||resOf(m)===F.res)&&(!F.adv||m.adv.toLowerCase().includes(F.adv.toLowerCase()))&&(!F.jog||m.jog.some(p=>p.nome===F.jog)))}
+function matchDayKey(m){
+  if(m.ts){const d=new Date(m.ts*1000),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())}
+  const v=String(m.data||"");const a=v.match(/^(\d{2})\/(\d{2})(?:\/(\d{4}))?$/);
+  if(a)return (a[3]||String(new Date().getFullYear()))+"-"+a[2]+"-"+a[1];
+  return "0000-00-00";
+}
+function matchDayLabel(key,items){
+  if(key==="0000-00-00")return "Sem data";
+  const [y,mo,da]=key.split("-").map(Number),d=new Date(y,mo-1,da);
+  return d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"});
+}
+function groupMatchesByDay(ms){
+  const groups=new Map();ms.forEach(m=>{const k=matchDayKey(m);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(m)});
+  return [...groups.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
+}
+const DAYUSR={};
+document.addEventListener("click",e=>{const sm=e.target.closest("details.match-day>summary");if(!sm)return;const d=sm.parentElement;DAYUSR[d.parentElement.id+"|"+d.dataset.day]=!d.open});
+function dayOpen(box,day,gi){const k=box+"|"+day;return k in DAYUSR?DAYUSR[k]:gi===0}
 let CUR=[],SELM=null;
 function aggregate(ms,only){const a={};ms.forEach(m=>m.jog.forEach(p=>{if(only&&p.nome!==only)return;const x=a[p.nome]||(a[p.nome]={nome:p.nome,j:0,g:0,a:0,n:0,sh:0,pm:0,pa:0,tm:0,ta:0,mom:0,sv:0,min:0,gc:0,cs:0,rc:0,ps:{},w:0});x.j++;x.w+=resOf(m)==="V"?1:0;x.g+=p.gols;x.a+=p.ast;x.n+=p.nota;x.sh+=p.sh;x.pm+=p.pm;x.pa+=p.pa;x.tm+=p.tm;x.ta+=p.ta;x.mom+=p.mom;x.sv+=p.sv;x.min+=p.min;x.gc+=p.gc;x.cs+=p.cs;x.rc+=p.rc;if(p.pos)x.ps[p.pos]=(x.ps[p.pos]||0)+1}));return Object.values(a).sort((x,y)=>y.g-x.g||y.a-x.a)}
 
 function render(){
   const ms=filtered();if(!ms.includes(SELM))SELM=STATE.real&&ms.length?ms[0]:null;
-  $("matches").innerHTML=ms.length?ms.map((m,i)=>{const r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data)}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join(""):`<tr><td colspan="5">Nenhuma partida com esses filtros.</td></tr>`;
+  const groups=groupMatchesByDay(ms);
+  $("matches").innerHTML=groups.length?groups.map(([day,G],gi)=>{
+    const v=G.filter(m=>resOf(m)==="V").length,e=G.filter(m=>resOf(m)==="E").length,d=G.filter(m=>resOf(m)==="D").length,gp=G.reduce((a,m)=>a+m.pro,0),gc=G.reduce((a,m)=>a+m.contra,0);
+    const rows=G.map(m=>{const i=ms.indexOf(m),r=resOf(m);return `<tr class="clk${m===SELM?" sel":""}" data-i="${i}" tabindex="0"><td>${esc(m.data||"—")}</td><td>${esc(m.comp||"—")}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:22px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join("");
+    return `<details class="match-day" data-day="${esc(day)}"${dayOpen("matches",day,gi)?" open":""}><summary>${esc(matchDayLabel(day,G))}<small>${G.length} partida${G.length!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
+  }).join(""):'<p class="hint">Nenhuma partida com esses filtros.</p>';
   const v=ms.filter(m=>resOf(m)==="V").length,gp=ms.reduce((s,m)=>s+m.pro,0),gc=ms.reduce((s,m)=>s+m.contra,0);
-  CUR=ms;const ag=aggregate(ms,F.jog);
+  CUR=ms;const ag=aggregate(ms,F.jog).filter(p=>{const r=REG[String(p.nome||"").toLowerCase()];return !r||r.active!==false});
   const k=[[ms.length,"partidas"],[ms.length?Math.round(v/ms.length*100)+"%":"0%","taxa de vitórias"],[gp,"gols marcados"],[gc,"gols sofridos"],[STATE.real?ag.length:PLAYERS.length,"jogadores"]];
   $("kpis").innerHTML=k.map(([n,l])=>`<div class="kpi"><div class="num">${n}</div><small>${l}</small></div>`).join("");
   if(STATE.real){
@@ -643,6 +675,9 @@ async function persistNew(items){
   const mp=[];
   items.forEach(m=>{const id=idByKey[m.key];if(!id)return;m.jog.forEach(p=>mp.push({match_id:id,gamertag:p.nome,pos:p.pos||null,goals:p.gols,assists:p.ast,rating:p.nota||null,shots:p.sh,passes_made:p.pm,pass_attempts:p.pa,tackles_made:p.tm,tackle_attempts:p.ta,saves:p.sv,red_cards:p.rc,minutes:p.min,goals_conceded:p.gc||0,clean_sheets:p.cs||0,motm:!!p.mom}))});
   for(let i=0;i<mp.length;i+=500){const r=await sb.from("match_players").insert(mp.slice(i,i+500));if(r.error)throw r.error}
+  // Jogadores presentes nas partidas recém-importadas voltam ao elenco ativo.
+  const appeared=[...new Set(items.flatMap(m=>m.jog.map(p=>p.nome)).filter(Boolean))];
+  if(appeared.length){const r=await sb.from("players").update({active:true}).in("gamertag",appeared);if(r.error)throw r.error}
   return (data||[]).length;
 }
 let SAVING=null;
@@ -942,11 +977,16 @@ $("replist").onclick=async e=>{const b=e.target.closest("[data-rc]");if(!b)retur
 $("rgrp").onchange=renderReports;
 $("modo").onchange=e=>{MODO=e.target.value;try{localStorage.setItem("tsiix.modo",MODO)}catch(err){}refresh()};
 function renderH2H(){
-  const el=$("h2h"),g={};
+  const el=$("h2h");
   if(!STATE.real){el.innerHTML='<p class="hint" style="padding:12px">Carregue as partidas para ver o confronto direto.</p>';return}
-  STATE.matches.forEach(m=>{const x=g[m.adv]||(g[m.adv]={adv:m.adv,n:0,v:0,e:0,d:0,gp:0,gc:0,ts:0});x.n++;x[resOf(m).toLowerCase()]++;x.gp+=m.pro;x.gc+=m.contra;x.ts=Math.max(x.ts,m.ts||0)});
-  const L=Object.values(g).sort((a,b)=>b.n-a.n||b.ts-a.ts);
-  el.innerHTML=L.length?`<table><thead><tr><th>Adversário</th><th>Jogos</th><th>V</th><th>E</th><th>D</th><th>Gols</th><th>Saldo</th><th>Aproveit.</th><th>Último jogo</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.adv)}</td><td>${x.n}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp} x ${x.gc}</td><td>${x.gp-x.gc>0?"+":""}${x.gp-x.gc}</td><td>${Math.round((3*x.v+x.e)/(3*x.n)*100)}%</td><td>${x.ts?new Date(x.ts*1000).toLocaleDateString("pt-BR"):"—"}</td></tr>`).join("")}</tbody></table>`:'<p class="hint" style="padding:12px">Sem partidas na modalidade escolhida.</p>';
+  const groups=groupMatchesByDay(STATE.matches);
+  if(!groups.length){el.innerHTML='<p class="hint" style="padding:12px">Sem partidas na modalidade escolhida.</p>';return}
+  el.innerHTML=groups.map(([day,G],gi)=>{
+    const byAdv={};G.forEach(m=>{const x=byAdv[m.adv]||(byAdv[m.adv]={adv:m.adv,n:0,v:0,e:0,d:0,gp:0,gc:0,ts:0});x.n++;x[resOf(m).toLowerCase()]++;x.gp+=m.pro;x.gc+=m.contra;x.ts=Math.max(x.ts,m.ts||0)});
+    const L=Object.values(byAdv).sort((a,b)=>b.n-a.n||a.adv.localeCompare(b.adv));
+    const n=G.length,v=G.filter(m=>resOf(m)==="V").length,e=G.filter(m=>resOf(m)==="E").length,d=G.filter(m=>resOf(m)==="D").length,gp=G.reduce((a,m)=>a+m.pro,0),gc=G.reduce((a,m)=>a+m.contra,0);
+    return `<details class="match-day" data-day="${esc(day)}"${dayOpen("h2h",day,gi)?" open":""}><summary>${esc(matchDayLabel(day,G))}<small>${n} partida${n!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Adversário</th><th>Jogos</th><th>V</th><th>E</th><th>D</th><th>Gols</th><th>Saldo</th><th>Aproveit.</th><th>Último jogo</th></tr></thead><tbody>${L.map(x=>`<tr><td>${esc(x.adv)}</td><td>${x.n}</td><td>${x.v}</td><td>${x.e}</td><td>${x.d}</td><td>${x.gp} x ${x.gc}</td><td>${x.gp-x.gc>0?"+":""}${x.gp-x.gc}</td><td>${Math.round((3*x.v+x.e)/(3*x.n)*100)}%</td><td>${x.ts?new Date(x.ts*1000).toLocaleDateString("pt-BR"):esc(G[0].data||"—")}</td></tr>`).join("")}</tbody></table></div></details>`;
+  }).join("");
 }
 
 let RV="cards",OVR={};
@@ -1053,7 +1093,7 @@ function renderDetail(){
 }
 
 function renderCmp(){
-  const ms=filtered(),d=STATE.real?aggregate(ms):PLAYERS.map(p=>({nome:p.nome,j:p.jogos,g:p.gols,a:p.ast,n:p.nota*p.jogos,sh:0,pm:0,pa:0,tm:0,ta:0}));
+  const ms=filtered(),d=STATE.real?aggregate(ms).filter(p=>{const r=REG[String(p.nome||"").toLowerCase()];return !r||r.active!==false}):PLAYERS.map(p=>({nome:p.nome,j:p.jogos,g:p.gols,a:p.ast,n:p.nota*p.jogos,sh:0,pm:0,pa:0,tm:0,ta:0}));
   const a=$("ca"),b=$("cb"),names=d.map(p=>p.nome),key=names.join("|");
   if(a.dataset.k!==key){const o=names.map(n=>`<option>${esc(n)}</option>`).join(""),va=a.value,vb=b.value;a.innerHTML=b.innerHTML=o;a.dataset.k=key;a.value=names.includes(va)?va:names[0]||"";b.value=names.includes(vb)&&vb!==a.value?vb:names[1]||names[0]||""}
   const A=d.find(p=>p.nome===a.value),B=d.find(p=>p.nome===b.value);
@@ -1168,7 +1208,7 @@ $("logout").onclick=async()=>{if(sb){await sb.auth.signOut();ME=null;EDIT=false;
 /* ---- cadastro de jogadores ---- */
 function pmsg(t){$("pmsg").textContent=t}
 function renderPlayersAdmin(){
-  const L=Object.values(REG).sort((a,b)=>a.gamertag.localeCompare(b.gamertag));
+  const L=Object.values(REG).filter(p=>p.active!==false).sort((a,b)=>a.gamertag.localeCompare(b.gamertag));
   $("ptbl").innerHTML=L.length?L.map(p=>`<tr><td>${esc(p.gamertag)}</td><td>${esc(p.name||"")}</td><td>${esc(p.pos||"")}</td><td>${p.shirt_number??""}</td><td>${p.ovr??""}</td><td><input type="checkbox" data-pa="${p.id}" ${p.active?"checked":""} aria-label="Jogador ativo"></td><td><button class="ghost" data-pe="${p.id}">Editar</button> <button class="ghost" data-px="${p.id}">Excluir</button></td></tr>`).join(""):'<tr><td colspan="7">Nenhum jogador cadastrado.</td></tr>';
   let draft=0;try{const j=JSON.parse(localStorage.getItem("tsiix.v1")||"null");if(j&&Array.isArray(j.items))draft=j.items.filter(m=>!LIB.items.some(x=>x.key===m.key)).length}catch(e){}
   $("pmig").hidden=!EDIT||!draft;if(draft)$("pmig").textContent="Enviar "+draft+" partida(s) deste navegador para o banco";
@@ -1184,7 +1224,7 @@ $("psave").onclick=async()=>{
 $("ptbl").onclick=async e=>{
   const ed=e.target.closest("[data-pe]"),ex=e.target.closest("[data-px]");
   if(ed){const p=Object.values(REG).find(x=>x.id===ed.dataset.pe);if(p){$("pgt").value=p.gamertag;$("pnm").value=p.name||"";$("ppos").value=p.pos||"";$("pnum").value=p.shirt_number??"";$("povr").value=p.ovr??""}}
-  if(ex){const p=Object.values(REG).find(x=>x.id===ex.dataset.px);if(p&&confirm("Excluir "+p.gamertag+"? As estatísticas das partidas continuam salvas.")){const {error}=await sb.from("players").delete().eq("id",p.id);pmsg(error?"Erro: "+error.message:"Jogador excluído.");await reloadAll()}}
+  if(ex){const p=Object.values(REG).find(x=>x.id===ex.dataset.px);if(p&&confirm("Excluir "+p.gamertag+" do elenco? Ele sairá das listas, mas o histórico e as estatísticas serão preservados. Só retornará ao aparecer em uma nova partida importada.")){const {error}=await sb.from("players").update({active:false}).eq("id",p.id);pmsg(error?"Erro: "+error.message:"Jogador excluído. Histórico preservado.");await reloadAll()}}
 };
 $("ptbl").onchange=async e=>{const k=e.target.dataset&&e.target.dataset.pa;if(!k)return;const {error}=await sb.from("players").update({active:e.target.checked}).eq("id",k);pmsg(error?"Erro: "+error.message:"Atualizado.");await reloadAll()};
 $("pauto").onclick=async()=>{
