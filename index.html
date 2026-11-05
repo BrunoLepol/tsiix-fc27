@@ -615,7 +615,7 @@ function render(){
     return `<details class="match-day"><summary>${esc(matchDayLabel(day,G))}<small>${G.length} partida${G.length!==1?"s":""}, ${v}V ${e}E ${d}D, gols ${gp} x ${gc}</small></summary><div class="day-content table"><table><thead><tr><th>Data</th><th>Competição</th><th>Adversário</th><th>Placar</th><th>Resultado</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;
   }).join(""):'<p class="hint">Nenhuma partida com esses filtros.</p>';
   const v=ms.filter(m=>resOf(m)==="V").length,gp=ms.reduce((s,m)=>s+m.pro,0),gc=ms.reduce((s,m)=>s+m.contra,0);
-  CUR=ms;const ag=aggregate(ms,F.jog);
+  CUR=ms;const ag=aggregate(ms,F.jog).filter(p=>{const r=REG[String(p.nome||"").toLowerCase()];return !r||r.active!==false});
   const k=[[ms.length,"partidas"],[ms.length?Math.round(v/ms.length*100)+"%":"0%","taxa de vitórias"],[gp,"gols marcados"],[gc,"gols sofridos"],[STATE.real?ag.length:PLAYERS.length,"jogadores"]];
   $("kpis").innerHTML=k.map(([n,l])=>`<div class="kpi"><div class="num">${n}</div><small>${l}</small></div>`).join("");
   if(STATE.real){
@@ -672,6 +672,9 @@ async function persistNew(items){
   const mp=[];
   items.forEach(m=>{const id=idByKey[m.key];if(!id)return;m.jog.forEach(p=>mp.push({match_id:id,gamertag:p.nome,pos:p.pos||null,goals:p.gols,assists:p.ast,rating:p.nota||null,shots:p.sh,passes_made:p.pm,pass_attempts:p.pa,tackles_made:p.tm,tackle_attempts:p.ta,saves:p.sv,red_cards:p.rc,minutes:p.min,goals_conceded:p.gc||0,clean_sheets:p.cs||0,motm:!!p.mom}))});
   for(let i=0;i<mp.length;i+=500){const r=await sb.from("match_players").insert(mp.slice(i,i+500));if(r.error)throw r.error}
+  // Jogadores presentes nas partidas recém-importadas voltam ao elenco ativo.
+  const appeared=[...new Set(items.flatMap(m=>m.jog.map(p=>p.nome)).filter(Boolean))];
+  if(appeared.length){const r=await sb.from("players").update({active:true}).in("gamertag",appeared);if(r.error)throw r.error}
   return (data||[]).length;
 }
 let SAVING=null;
@@ -1087,7 +1090,7 @@ function renderDetail(){
 }
 
 function renderCmp(){
-  const ms=filtered(),d=STATE.real?aggregate(ms):PLAYERS.map(p=>({nome:p.nome,j:p.jogos,g:p.gols,a:p.ast,n:p.nota*p.jogos,sh:0,pm:0,pa:0,tm:0,ta:0}));
+  const ms=filtered(),d=STATE.real?aggregate(ms).filter(p=>{const r=REG[String(p.nome||"").toLowerCase()];return !r||r.active!==false}):PLAYERS.map(p=>({nome:p.nome,j:p.jogos,g:p.gols,a:p.ast,n:p.nota*p.jogos,sh:0,pm:0,pa:0,tm:0,ta:0}));
   const a=$("ca"),b=$("cb"),names=d.map(p=>p.nome),key=names.join("|");
   if(a.dataset.k!==key){const o=names.map(n=>`<option>${esc(n)}</option>`).join(""),va=a.value,vb=b.value;a.innerHTML=b.innerHTML=o;a.dataset.k=key;a.value=names.includes(va)?va:names[0]||"";b.value=names.includes(vb)&&vb!==a.value?vb:names[1]||names[0]||""}
   const A=d.find(p=>p.nome===a.value),B=d.find(p=>p.nome===b.value);
@@ -1202,7 +1205,7 @@ $("logout").onclick=async()=>{if(sb){await sb.auth.signOut();ME=null;EDIT=false;
 /* ---- cadastro de jogadores ---- */
 function pmsg(t){$("pmsg").textContent=t}
 function renderPlayersAdmin(){
-  const L=Object.values(REG).sort((a,b)=>a.gamertag.localeCompare(b.gamertag));
+  const L=Object.values(REG).filter(p=>p.active!==false).sort((a,b)=>a.gamertag.localeCompare(b.gamertag));
   $("ptbl").innerHTML=L.length?L.map(p=>`<tr><td>${esc(p.gamertag)}</td><td>${esc(p.name||"")}</td><td>${esc(p.pos||"")}</td><td>${p.shirt_number??""}</td><td>${p.ovr??""}</td><td><input type="checkbox" data-pa="${p.id}" ${p.active?"checked":""} aria-label="Jogador ativo"></td><td><button class="ghost" data-pe="${p.id}">Editar</button> <button class="ghost" data-px="${p.id}">Excluir</button></td></tr>`).join(""):'<tr><td colspan="7">Nenhum jogador cadastrado.</td></tr>';
   let draft=0;try{const j=JSON.parse(localStorage.getItem("tsiix.v1")||"null");if(j&&Array.isArray(j.items))draft=j.items.filter(m=>!LIB.items.some(x=>x.key===m.key)).length}catch(e){}
   $("pmig").hidden=!EDIT||!draft;if(draft)$("pmig").textContent="Enviar "+draft+" partida(s) deste navegador para o banco";
@@ -1218,7 +1221,7 @@ $("psave").onclick=async()=>{
 $("ptbl").onclick=async e=>{
   const ed=e.target.closest("[data-pe]"),ex=e.target.closest("[data-px]");
   if(ed){const p=Object.values(REG).find(x=>x.id===ed.dataset.pe);if(p){$("pgt").value=p.gamertag;$("pnm").value=p.name||"";$("ppos").value=p.pos||"";$("pnum").value=p.shirt_number??"";$("povr").value=p.ovr??""}}
-  if(ex){const p=Object.values(REG).find(x=>x.id===ex.dataset.px);if(p&&confirm("Excluir "+p.gamertag+"? As estatísticas das partidas continuam salvas.")){const {error}=await sb.from("players").delete().eq("id",p.id);pmsg(error?"Erro: "+error.message:"Jogador excluído.");await reloadAll()}}
+  if(ex){const p=Object.values(REG).find(x=>x.id===ex.dataset.px);if(p&&confirm("Excluir "+p.gamertag+" do elenco? Ele sairá das listas, mas o histórico e as estatísticas serão preservados. Só retornará ao aparecer em uma nova partida importada.")){const {error}=await sb.from("players").update({active:false}).eq("id",p.id);pmsg(error?"Erro: "+error.message:"Jogador excluído. Histórico preservado.");await reloadAll()}}
 };
 $("ptbl").onchange=async e=>{const k=e.target.dataset&&e.target.dataset.pa;if(!k)return;const {error}=await sb.from("players").update({active:e.target.checked}).eq("id",k);pmsg(error?"Erro: "+error.message:"Atualizado.");await reloadAll()};
 $("pauto").onclick=async()=>{
