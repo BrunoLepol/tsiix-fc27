@@ -459,7 +459,7 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
       <button class="pri" id="lonly">Analisar só as visíveis</button>
     </div>
     <div class="table"><table>
-      <thead><tr><th>Analisar</th><th>Data</th><th>Tipo</th><th>Adversário</th><th>Placar</th></tr></thead>
+      <thead><tr><th>Analisar</th><th>Data</th><th>Tipo</th><th>Adversário</th><th>Placar</th><th>Ações</th></tr></thead>
       <tbody id="libtbl"></tbody>
     </table></div>
   </section>
@@ -724,9 +724,27 @@ function renderLib(){
   $("lmes").value=LF.mes;libInfo();
   const v=libVis();
   $("libtbl").innerHTML=v.length?v.map(m=>{const r=resOf(m),d=m.ts?new Date(m.ts*1000).toLocaleDateString("pt-BR"):"—";
-    return `<tr><td><input type="checkbox" data-k="${esc(m.key)}" ${LIB.off.has(m.key)?"":"checked"} aria-label="Analisar a partida contra ${esc(m.adv)}"></td><td>${d}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="r ${r}">${m.pro} x ${m.contra}</td></tr>`}).join(""):'<tr><td colspan="5">Nada para mostrar.</td></tr>';
+    return `<tr><td><input type="checkbox" data-k="${esc(m.key)}" ${LIB.off.has(m.key)?"":"checked"} aria-label="Analisar a partida contra ${esc(m.adv)}"></td><td>${d}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="r ${r}">${m.pro} x ${m.contra}</td><td><button class="ghost" type="button" data-delete-match="${esc(m.id||"")}" ${m.id?"":"disabled"} style="color:var(--loss);border-color:var(--loss)" aria-label="Excluir partida contra ${esc(m.adv)}">Excluir</button></td></tr>`}).join(""):'<tr><td colspan="6">Nada para mostrar.</td></tr>';
 }
 $("libtbl").onchange=e=>{const k=e.target.dataset&&e.target.dataset.k;if(k==null)return;e.target.checked?LIB.off.delete(k):LIB.off.add(k);saveLib();refresh()};
+$("libtbl").onclick=async e=>{
+  const btn=e.target.closest("button[data-delete-match]");if(!btn)return;
+  const id=btn.dataset.deleteMatch,m=LIB.items.find(x=>String(x.id)===String(id));
+  if(!m||!m.id||!EDIT||!sb)return;
+  const date=m.ts?new Date(m.ts*1000).toLocaleDateString("pt-BR"):"sem data";
+  if(!confirm(`Excluir definitivamente a partida contra ${m.adv} (${m.pro} x ${m.contra}, ${date})? Os dados individuais vinculados também serão excluídos. Esta ação não pode ser desfeita.`))return;
+  btn.disabled=true;btn.textContent="Excluindo...";
+  try{
+    const child=await sb.from("match_players").delete().eq("match_id",m.id);
+    if(child.error)throw child.error;
+    const parent=await sb.from("matches").delete().eq("id",m.id);
+    if(parent.error)throw parent.error;
+    if(SELM&&String(SELM.id)===String(m.id))SELM=null;
+    LIB.items=LIB.items.filter(x=>String(x.id)!==String(m.id));LIB.off.delete(m.key);
+    await loadFromDb();refresh();renderLib();renderPlayersAdmin();render();
+    setAdm("Partida e estatísticas individuais excluídas definitivamente.");
+  }catch(err){console.error(err);setAdm("Erro ao excluir a partida: "+(err.message||err));btn.disabled=false;btn.textContent="Excluir"}
+};
 $("lmes").onchange=e=>{LF.mes=e.target.value;renderLib()};
 $("ltipo").onchange=e=>{LF.tipo=e.target.value;renderLib()};
 $("lsettipo").onclick=()=>{libVis().forEach(m=>{m.comp=$("lset").value});saveLib();refresh();renderLib()};
