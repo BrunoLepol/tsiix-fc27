@@ -450,7 +450,7 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
     <p class="hint" id="libinfo"></p>
     <div class="row">
       <select id="lmes" aria-label="Filtrar por mês"></select>
-      <select id="ltipo" aria-label="Filtrar por tipo"><option value="">Todos os tipos</option><option>Liga</option><option>Amistoso</option><option>Playoff</option></select>
+      <select id="ltipo" aria-label="Filtrar por tipo"><option value="">Todos os tipos</option><option>Liga</option><option>Amistoso</option><option>Playoff</option></select>\n      <select id="lview" aria-label="Visualização das partidas"><option value="active">Partidas ativas</option><option value="archived">Partidas arquivadas</option></select>
       <select id="lset" aria-label="Novo tipo"><option>Liga</option><option>Amistoso</option><option>Playoff</option></select>
       <button class="ghost" id="lsettipo">Mudar tipo das visíveis</button>
       <button class="ghost" id="lmark">Marcar visíveis</button>
@@ -649,7 +649,7 @@ function teamBlock(m){
 }
 
 let LIB={club:"",name:"",items:[],off:new Set()},LASTMSG="";
-const LF={mes:"",tipo:""},SK="tsiix.v1";
+const LF={mes:"",tipo:"",arquivadas:false},SK="tsiix.v1";
 async function fetchAll(table,order){let out=[],from=0;for(;;){const {data,error}=await sb.from(table).select("*").order(order).range(from,from+999);if(error)throw error;out=out.concat(data);if(data.length<1000)break;from+=1000}return out}
 async function loadFromDb(){
   const [ms,mps,pls,st]=await Promise.all([fetchAll("matches","id"),fetchAll("match_players","id"),fetchAll("players","gamertag"),sb.from("site_settings").select("key,value")]);
@@ -668,7 +668,7 @@ async function loadFromDb(){
   items.forEach(m=>m.jog.forEach(p=>{const r=REG[p.nome.toLowerCase()];if(r&&r.ovr)OVR[p.nome]=r.ovr}));
 }
 async function persistNew(items){
-  const rows=items.map(m=>({ea_match_id:m.key,played_at:m.ts?new Date(m.ts*1000).toISOString():null,match_type:m.comp,opponent:m.adv,goals_for:m.pro,goals_against:m.contra,selected:!LIB.off.has(m.key),raw:{t1:m.t1,t2:m.t2}}));
+  const rows=items.map(m=>({ea_match_id:m.key,played_at:m.ts?new Date(m.ts*1000).toISOString():null,match_type:m.comp,opponent:m.adv,goals_for:m.pro,goals_against:m.contra,selected:!LIB.off.has(m.key),raw:{t1:m.t1,t2:m.t2,archived:false}}));
   const {data,error}=await sb.from("matches").upsert(rows,{onConflict:"ea_match_id",ignoreDuplicates:true}).select("id,ea_match_id");
   if(error)throw error;
   const idByKey={};(data||[]).forEach(r=>{idByKey[r.ea_match_id]=r.id});
@@ -692,7 +692,7 @@ async function doSave(){
   }catch(e){console.error(e);setAdm("Erro ao salvar: "+(e.message||e))}
 }
 async function saveSeason(){if(!EDIT||!sb)return;const {error}=await sb.from("site_settings").upsert({key:"season",value:SEASON});setAdm(error?"Erro ao salvar os totais: "+error.message:"Totais da temporada salvos no banco.")}
-function sync(){const real=LIB.items.length>0||!!sb;STATE.matches=real?LIB.items.filter(m=>!LIB.off.has(m.key)&&(MODO==="Todas"||m.comp===MODO)).sort((a,b)=>b.ts-a.ts):MATCHES.map(m=>({...m,jog:[]}));STATE.real=real}
+function sync(){const real=LIB.items.length>0||!!sb;STATE.matches=real?LIB.items.filter(m=>!m.archived&&!LIB.off.has(m.key)&&(MODO==="Todas"||m.comp===MODO)).sort((a,b)=>b.ts-a.ts):MATCHES.map(m=>({...m,jog:[]}));STATE.real=real}
 function refresh(){sync();const nomes=[...new Set(STATE.matches.flatMap(m=>m.jog.map(p=>p.nome)))].sort();$("fjog").innerHTML='<option value="">Todos os jogadores</option>'+nomes.map(n=>`<option>${esc(n)}</option>`).join("");F.jog="";render();libInfo()}
 function mergeLib(){
   const id=$("clube").value,nv=build(STATE.raw.raw,id,$("tipo").value);
@@ -707,8 +707,8 @@ function mergeLib(){
 }
 const ymk=m=>{if(!m.ts)return 0;const d=new Date(m.ts*1000);return d.getFullYear()*100+d.getMonth()+1};
 const ymL=k=>k?String(k%100).padStart(2,"0")+"/"+Math.floor(k/100):"Sem data";
-function libVis(){return LIB.items.filter(m=>(!LF.mes||String(ymk(m))===LF.mes)&&(!LF.tipo||m.comp===LF.tipo)).sort((a,b)=>b.ts-a.ts)}
-function libInfo(){const n=LIB.items.length,s=LIB.items.filter(m=>!LIB.off.has(m.key)&&(MODO==="Todas"||m.comp===MODO)).length;
+function libVis(){return LIB.items.filter(m=>(LF.arquivadas?!!m.archived:!m.archived)&&(!LF.mes||String(ymk(m))===LF.mes)&&(!LF.tipo||m.comp===LF.tipo)).sort((a,b)=>b.ts-a.ts)}
+function libInfo(){const n=LIB.items.filter(m=>!m.archived).length,s=LIB.items.filter(m=>!m.archived&&!LIB.off.has(m.key)&&(MODO==="Todas"||m.comp===MODO)).length;
   $("libinfo").textContent=n?s+" de "+n+" partidas entram na análise (modalidade ativa: "+MODO+", só as marcadas). Todas as outras abas usam só essas. As partidas ficam salvas no banco de dados.":"Nenhuma partida salva ainda. Importe o JSON das partidas na seção acima."}
 function renderLib(){
   const ks=[...new Set(LIB.items.map(ymk))].sort((a,b)=>b-a);
@@ -717,29 +717,30 @@ function renderLib(){
   $("lmes").value=LF.mes;libInfo();
   const v=libVis();
   $("libtbl").innerHTML=v.length?v.map(m=>{const r=resOf(m),d=m.ts?new Date(m.ts*1000).toLocaleDateString("pt-BR"):"—";
-    return `<tr><td><input type="checkbox" data-k="${esc(m.key)}" ${LIB.off.has(m.key)?"":"checked"} aria-label="Analisar a partida contra ${esc(m.adv)}"></td><td>${d}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="r ${r}">${m.pro} x ${m.contra}</td><td><button class="ghost" type="button" data-delete-match="${esc(m.id||"")}" ${m.id?"":"disabled"} style="color:var(--loss);border-color:var(--loss)" aria-label="Excluir partida contra ${esc(m.adv)}">Excluir</button></td></tr>`}).join(""):'<tr><td colspan="6">Nada para mostrar.</td></tr>';
+    return `<tr><td><input type="checkbox" data-k="${esc(m.key)}" ${LIB.off.has(m.key)?"":"checked"} aria-label="Analisar a partida contra ${esc(m.adv)}"></td><td>${d}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="r ${r}">${m.pro} x ${m.contra}</td><td><button class="ghost" type="button" data-archive-match="${esc(m.id||"")}" ${m.id?"":"disabled"} style="color:${m.archived?"var(--win)":"var(--gold)"};border-color:${m.archived?"var(--win)":"var(--gold)"}" aria-label="${m.archived?"Restaurar":"Arquivar"} partida contra ${esc(m.adv)}">${m.archived?"Restaurar":"Arquivar"}</button></td></tr>`}).join(""):'<tr><td colspan="6">Nada para mostrar.</td></tr>';
 }
 $("libtbl").onchange=e=>{const k=e.target.dataset&&e.target.dataset.k;if(k==null)return;e.target.checked?LIB.off.delete(k):LIB.off.add(k);saveLib();refresh()};
 $("libtbl").onclick=async e=>{
-  const btn=e.target.closest("button[data-delete-match]");if(!btn)return;
-  const id=btn.dataset.deleteMatch,m=LIB.items.find(x=>String(x.id)===String(id));
+  const btn=e.target.closest("button[data-archive-match]");if(!btn)return;
+  const id=btn.dataset.archiveMatch,m=LIB.items.find(x=>String(x.id)===String(id));
   if(!m||!m.id||!EDIT||!sb)return;
+  const action=m.archived?"restaurar":"arquivar";
   const date=m.ts?new Date(m.ts*1000).toLocaleDateString("pt-BR"):"sem data";
-  if(!confirm(`Excluir definitivamente a partida contra ${m.adv} (${m.pro} x ${m.contra}, ${date})? Os dados individuais vinculados também serão excluídos. Esta ação não pode ser desfeita.`))return;
-  btn.disabled=true;btn.textContent="Excluindo...";
+  if(!confirm(`${m.archived?"Restaurar":"Arquivar"} a partida contra ${m.adv} (${m.pro} x ${m.contra}, ${date})? ${m.archived?"Ela voltará às partidas ativas.":"Ela deixará de aparecer nas análises, rankings e relatórios, mas continuará salva e não será importada novamente."}`))return;
+  btn.disabled=true;btn.textContent=m.archived?"Restaurando...":"Arquivando...";
   try{
-    const child=await sb.from("match_players").delete().eq("match_id",m.id);
-    if(child.error)throw child.error;
-    const parent=await sb.from("matches").delete().eq("id",m.id);
-    if(parent.error)throw parent.error;
-    if(SELM&&String(SELM.id)===String(m.id))SELM=null;
-    LIB.items=LIB.items.filter(x=>String(x.id)!==String(m.id));LIB.off.delete(m.key);
-    await loadFromDb();refresh();renderLib();renderPlayersAdmin();render();
-    setAdm("Partida e estatísticas individuais excluídas definitivamente.");
-  }catch(err){console.error(err);setAdm("Erro ao excluir a partida: "+(err.message||err));btn.disabled=false;btn.textContent="Excluir"}
+    const raw={...(m.raw||{}),archived:!m.archived};
+    const {error}=await sb.from("matches").update({raw}).eq("id",m.id);
+    if(error)throw error;
+    m.raw=raw;m.archived=!m.archived;
+    if(SELM&&String(SELM.id)===String(m.id)&&m.archived)SELM=null;
+    refresh();renderLib();render();
+    setAdm(m.archived?"Partida arquivada. Ela permanece salva e será ignorada em novas importações.":"Partida restaurada e incluída novamente nas análises.");
+  }catch(err){console.error(err);setAdm("Erro ao "+action+" a partida: "+(err.message||err));btn.disabled=false;btn.textContent=m.archived?"Restaurar":"Arquivar"}
 };
 $("lmes").onchange=e=>{LF.mes=e.target.value;renderLib()};
 $("ltipo").onchange=e=>{LF.tipo=e.target.value;renderLib()};
+$("lview").onchange=e=>{LF.arquivadas=e.target.value==="archived";renderLib()};
 $("lsettipo").onclick=()=>{libVis().forEach(m=>{m.comp=$("lset").value});saveLib();refresh();renderLib()};
 $("lmark").onclick=()=>{libVis().forEach(m=>LIB.off.delete(m.key));saveLib();refresh();renderLib()};
 $("lunmark").onclick=()=>{libVis().forEach(m=>LIB.off.add(m.key));saveLib();refresh();renderLib()};
