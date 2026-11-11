@@ -459,7 +459,7 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
       <button class="pri" id="lonly">Analisar só as visíveis</button>
     </div>
     <div class="table"><table>
-      <thead><tr><th>Analisar</th><th>Data</th><th>Tipo</th><th>Adversário</th><th>Placar</th></tr></thead>
+      <thead><tr><th>Analisar</th><th>Data</th><th>Tipo</th><th>Adversário</th><th>Placar</th><th>Ações</th></tr></thead>
       <tbody id="libtbl"></tbody>
     </table></div>
   </section>
@@ -659,7 +659,8 @@ async function loadFromDb(){
   const off=new Set(),items=ms.map(m=>{
     const ts=m.played_at?Math.floor(Date.parse(m.played_at)/1000):0,key=m.ea_match_id||m.id,raw=m.raw||{};
     if(!m.selected)off.add(key);
-    return {id:m.id,key,ts,data:ts?new Date(ts*1000).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}):"",comp:m.match_type,adv:m.opponent,pro:m.goals_for,contra:m.goals_against,jog:byM[m.id]||[],t1:raw.t1||null,t2:raw.t2||null,_sel:!!m.selected,_comp:m.match_type}});
+    const jog=(byM[m.id]||[]).map(p=>{const fix=raw.manual_player_stats&&raw.manual_player_stats[p.nome];return fix?{...p,gols:Number(fix.goals)||0,ast:Number(fix.assists)||0}:p});
+    return {id:m.id,key,ts,data:ts?new Date(ts*1000).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}):"",comp:m.match_type,adv:m.opponent,pro:m.goals_for,contra:m.goals_against,jog,t1:raw.t1||null,t2:raw.t2||null,raw,_sel:!!m.selected,_comp:m.match_type}});
   LIB={club:"",name:"",items,off};
   REG={};pls.forEach(p=>{REG[p.gamertag.toLowerCase()]=p});
   SEASON=[];OVR={};
@@ -723,9 +724,27 @@ function renderLib(){
   $("lmes").value=LF.mes;libInfo();
   const v=libVis();
   $("libtbl").innerHTML=v.length?v.map(m=>{const r=resOf(m),d=m.ts?new Date(m.ts*1000).toLocaleDateString("pt-BR"):"—";
-    return `<tr><td><input type="checkbox" data-k="${esc(m.key)}" ${LIB.off.has(m.key)?"":"checked"} aria-label="Analisar a partida contra ${esc(m.adv)}"></td><td>${d}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="r ${r}">${m.pro} x ${m.contra}</td></tr>`}).join(""):'<tr><td colspan="5">Nada para mostrar.</td></tr>';
+    return `<tr><td><input type="checkbox" data-k="${esc(m.key)}" ${LIB.off.has(m.key)?"":"checked"} aria-label="Analisar a partida contra ${esc(m.adv)}"></td><td>${d}</td><td>${esc(m.comp)}</td><td>${esc(m.adv)}</td><td class="r ${r}">${m.pro} x ${m.contra}</td><td><button class="ghost" type="button" data-delete-match="${esc(m.id||"")}" ${m.id?"":"disabled"} style="color:var(--loss);border-color:var(--loss)" aria-label="Excluir partida contra ${esc(m.adv)}">Excluir</button></td></tr>`}).join(""):'<tr><td colspan="6">Nada para mostrar.</td></tr>';
 }
 $("libtbl").onchange=e=>{const k=e.target.dataset&&e.target.dataset.k;if(k==null)return;e.target.checked?LIB.off.delete(k):LIB.off.add(k);saveLib();refresh()};
+$("libtbl").onclick=async e=>{
+  const btn=e.target.closest("button[data-delete-match]");if(!btn)return;
+  const id=btn.dataset.deleteMatch,m=LIB.items.find(x=>String(x.id)===String(id));
+  if(!m||!m.id||!EDIT||!sb)return;
+  const date=m.ts?new Date(m.ts*1000).toLocaleDateString("pt-BR"):"sem data";
+  if(!confirm(`Excluir definitivamente a partida contra ${m.adv} (${m.pro} x ${m.contra}, ${date})? Os dados individuais vinculados também serão excluídos. Esta ação não pode ser desfeita.`))return;
+  btn.disabled=true;btn.textContent="Excluindo...";
+  try{
+    const child=await sb.from("match_players").delete().eq("match_id",m.id);
+    if(child.error)throw child.error;
+    const parent=await sb.from("matches").delete().eq("id",m.id);
+    if(parent.error)throw parent.error;
+    if(SELM&&String(SELM.id)===String(m.id))SELM=null;
+    LIB.items=LIB.items.filter(x=>String(x.id)!==String(m.id));LIB.off.delete(m.key);
+    await loadFromDb();refresh();renderLib();renderPlayersAdmin();render();
+    setAdm("Partida e estatísticas individuais excluídas definitivamente.");
+  }catch(err){console.error(err);setAdm("Erro ao excluir a partida: "+(err.message||err));btn.disabled=false;btn.textContent="Excluir"}
+};
 $("lmes").onchange=e=>{LF.mes=e.target.value;renderLib()};
 $("ltipo").onchange=e=>{LF.tipo=e.target.value;renderLib()};
 $("lsettipo").onclick=()=>{libVis().forEach(m=>{m.comp=$("lset").value});saveLib();refresh();renderLib()};
@@ -1088,8 +1107,36 @@ function renderDetail(){
   const m=SELM,r=resOf(m),tot=k=>m.jog.reduce((s,p)=>s+p[k],0),pc=(x,y)=>y?Math.round(x/y*100)+"%":"—";
   const best=m.jog.length?m.jog.reduce((a,b)=>b.nota>a.nota?b:a):null,mom=m.jog.find(p=>p.mom);
   const rows=m.jog.map(p=>`<tr><td>${esc(p.nome)}${p.mom?" ★":""}</td><td>${esc(p.pos||"—")}</td><td>${p.gols}</td><td>${p.ast}</td><td>${p.nota.toFixed(1)}</td><td>${p.sh}</td><td>${p.pm}/${p.pa} (${pc(p.pm,p.pa)})</td><td>${p.tm}/${p.ta} (${pc(p.tm,p.ta)})</td><td>${p.pos==="Goleiro"?p.sv:"—"}</td><td>${p.min}</td><td>${p.rc}</td></tr>`).join("");
+  const editPanel=EDIT?`<section class="card" style="margin-top:14px;border:1px solid var(--accent)"><header><div><h3>Corrigir dados da partida</h3><div class="hint">Altere somente o placar, gols e assistências. As demais estatísticas serão preservadas.</div></div></header>
+    <div class="row"><label style="display:block;flex:1">Gols do TSIIX<input id="edit-score-for" type="number" min="0" step="1" value="${m.pro}" style="display:block;width:100%;margin-top:5px"></label><label style="display:block;flex:1">Gols do adversário<input id="edit-score-against" type="number" min="0" step="1" value="${m.contra}" style="display:block;width:100%;margin-top:5px"></label></div>
+    ${m.jog.length?`<div class="table"><table><thead><tr><th>Jogador</th><th>Gols</th><th>Assistências</th></tr></thead><tbody>${m.jog.map((p,i)=>`<tr data-edit-player="${i}"><td>${esc(p.nome)}</td><td><input type="number" min="0" step="1" data-edit-goals value="${Number(p.gols)||0}" aria-label="Gols de ${esc(p.nome)}" style="width:76px"></td><td><input type="number" min="0" step="1" data-edit-assists value="${Number(p.ast)||0}" aria-label="Assistências de ${esc(p.nome)}" style="width:76px"></td></tr>`).join("")}</tbody></table></div>`:'<p class="hint">Esta partida não possui estatísticas individuais importadas; não há jogadores disponíveis para editar.</p>'}
+    <div class="row"><button class="pri" id="save-match-correction" type="button">Salvar correções</button><span class="hint" id="match-edit-msg" style="margin:0"></span></div>
+  </section>`:"";
   el.innerHTML=`<div class="card"><header><div><div class="pos">${esc(m.comp)}, ${esc(m.data)}</div><h3>TSIIX ${m.pro} x ${m.contra} ${esc(m.adv)}</h3><div class="r ${r}">${RN[r]}</div></div>${best?`<div><div class="ovr num">${best.nota.toFixed(1)}</div><div class="nick">melhor nota: ${esc(best.nome)}</div>${mom?`<div class="nick">melhor da partida: <b>${esc(mom.nome)}</b></div>`:""}</div>`:""}</header>`+COPYROW+awardsHTML(m)+teamBlock(m)+
-  (m.jog.length?`<div class="table"><table><thead><tr><th>Jogador</th><th>Pos.</th><th>Gols</th><th>Assist.</th><th>Nota</th><th>Chutes</th><th>Passes</th><th>Desarmes</th><th>Defesas</th><th>Min.</th><th>Verm.</th></tr></thead><tbody>${rows}<tr><td><b>Total</b></td><td></td><td><b>${tot("gols")}</b></td><td><b>${tot("ast")}</b></td><td></td><td><b>${tot("sh")}</b></td><td><b>${pc(tot("pm"),tot("pa"))}</b></td><td><b>${pc(tot("tm"),tot("ta"))}</b></td><td><b>${tot("sv")}</b></td><td></td><td><b>${tot("rc")}</b></td></tr></tbody></table></div>`:'<p class="hint" style="margin-top:12px">Sem estatísticas de jogadores nesta partida (dados de exemplo). Carregue o JSON para ver os dados reais.</p>')+`</div>`;
+  (m.jog.length?`<div class="table"><table><thead><tr><th>Jogador</th><th>Pos.</th><th>Gols</th><th>Assist.</th><th>Nota</th><th>Chutes</th><th>Passes</th><th>Desarmes</th><th>Defesas</th><th>Min.</th><th>Verm.</th></tr></thead><tbody>${rows}<tr><td><b>Total</b></td><td></td><td><b>${tot("gols")}</b></td><td><b>${tot("ast")}</b></td><td></td><td><b>${tot("sh")}</b></td><td><b>${pc(tot("pm"),tot("pa"))}</b></td><td><b>${pc(tot("tm"),tot("ta"))}</b></td><td><b>${tot("sv")}</b></td><td></td><td><b>${tot("rc")}</b></td></tr></tbody></table></div>`:'<p class="hint" style="margin-top:12px">Sem estatísticas de jogadores nesta partida (dados de exemplo). Carregue o JSON para ver os dados reais.</p>')+`</div>`+editPanel;
+  const saveBtn=$("save-match-correction");
+  if(saveBtn)saveBtn.onclick=()=>saveMatchCorrection(m,el);
+}
+
+async function saveMatchCorrection(m,el){
+  const msg=el.querySelector("#match-edit-msg"),btn=el.querySelector("#save-match-correction");
+  const val=id=>Number(el.querySelector(id)?.value);
+  const pro=val("#edit-score-for"),contra=val("#edit-score-against");
+  if(!Number.isInteger(pro)||pro<0||!Number.isInteger(contra)||contra<0){msg.textContent="Informe placares inteiros e não negativos.";return}
+  const players=[...el.querySelectorAll("tr[data-edit-player]")].map(row=>({p:m.jog[Number(row.dataset.editPlayer)],g:Number(row.querySelector("[data-edit-goals]").value),a:Number(row.querySelector("[data-edit-assists]").value)}));
+  if(players.some(x=>!x.p||!Number.isInteger(x.g)||x.g<0||!Number.isInteger(x.a)||x.a<0)){msg.textContent="Gols e assistências devem ser números inteiros não negativos.";return}
+  if(players.reduce((s,x)=>s+x.g,0)>pro||players.reduce((s,x)=>s+x.a,0)>pro){msg.textContent="A soma dos gols e das assistências dos jogadores não pode superar os gols do TSIIX.";return}
+  if(!m.id||!sb){msg.textContent="Não foi possível identificar esta partida no banco de dados.";return}
+  btn.disabled=true;msg.textContent="Salvando...";
+  try{
+    const manual_player_stats={...(m.raw&&m.raw.manual_player_stats||{})};
+    players.forEach(x=>{manual_player_stats[x.p.nome]={goals:x.g,assists:x.a}});
+    const raw={...(m.raw||{}),manual_player_stats};
+    const {error}=await sb.from("matches").update({goals_for:pro,goals_against:contra,raw}).eq("id",m.id);
+    if(error)throw error;
+    const oldId=m.id;await loadFromDb();refresh();renderLib();renderPlayersAdmin();SELM=STATE.matches.find(x=>x.id===oldId)||LIB.items.find(x=>x.id===oldId)||null;render();
+    setAdm("Resultado, gols e assistências corrigidos. As demais estatísticas foram preservadas.");
+  }catch(e){console.error(e);msg.textContent="Erro ao salvar: "+(e.message||e);btn.disabled=false}
 }
 
 function renderCmp(){
