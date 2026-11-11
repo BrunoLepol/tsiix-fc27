@@ -412,7 +412,6 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
     <textarea id="json" placeholder="Cole aqui o JSON das partidas" aria-label="JSON das partidas"></textarea>
     <div class="row">
       <button class="pri" id="carregar">Carregar partidas</button>
-      <button class="ghost" id="limpar">Apagar todas as partidas do banco</button>
       <select id="clube" hidden aria-label="Seu clube"></select>
     </div>
     <p id="msg" role="status"></p>
@@ -649,7 +648,7 @@ function teamBlock(m){
   return `<div class="cmphead" style="margin-top:14px"><span></span><span>TSIIX</span><span>${esc(m.adv)}</span></div>`+rows.map(([l,x,y,low])=>{const mx=Math.max(x||0,y||0);return `<div class="cmprow"><div class="lbl">${l}</div>${side(x,y,mx,low)}${side(y,x,mx,low)}</div>`}).join("");
 }
 
-let LIB={club:"",name:"",items:[],off:new Set()},LASTMSG="",WIPE=0;
+let LIB={club:"",name:"",items:[],off:new Set()},LASTMSG="";
 const LF={mes:"",tipo:""},SK="tsiix.v1";
 async function fetchAll(table,order){let out=[],from=0;for(;;){const {data,error}=await sb.from(table).select("*").order(order).range(from,from+999);if(error)throw error;out=out.concat(data);if(data.length<1000)break;from+=1000}return out}
 async function loadFromDb(){
@@ -705,12 +704,6 @@ function mergeLib(){
   saveLib();sync();renderLib();
   LASTMSG=add+" partidas novas salvas"+(nv.length-add?" ("+(nv.length-add)+" já estavam salvas)":"")+"."+(MODO!=="Todas"&&nv.some(m=>m.comp!==MODO)?" Modalidade ativa: "+MODO+". Troque em Modalidade, no topo, para ver as outras.":"");
   return true;
-}
-function wipe(){
-  if(LIB.items.length&&!WIPE){WIPE=1;$("limpar").textContent="Clique de novo para apagar tudo";setTimeout(()=>{WIPE=0;$("limpar").textContent="Apagar todas as partidas do banco"},4000);return false}
-  WIPE=0;$("limpar").textContent="Apagar todas as partidas do banco";LIB={club:"",name:"",items:[],off:new Set()};
-  if(sb&&EDIT)sb.from("matches").delete().not("id","is",null).then(({error})=>setAdm(error?"Erro ao apagar: "+error.message:"Partidas apagadas do banco."));
-  renderLib();return true;
 }
 const ymk=m=>{if(!m.ts)return 0;const d=new Date(m.ts*1000);return d.getFullYear()*100+d.getMonth()+1};
 const ymL=k=>k?String(k%100).padStart(2,"0")+"/"+Math.floor(k/100):"Sem data";
@@ -1192,8 +1185,6 @@ $("carregar").onclick=()=>{
   }catch(e){setMsg(e instanceof SyntaxError?"Esse texto não é um JSON válido. Copie a página inteira, do primeiro { ou [ até o último.":e.message,true)}
 };
 $("clube").onchange=apply;
-$("limpar").onclick=()=>{if(!wipe())return;STATE={matches:MATCHES.map(m=>({...m,jog:[]})),real:false,raw:null};F.res=F.adv=F.jog="";
-  $("fres").value=$("fadv").value="";$("fjog").innerHTML='<option value="">Todos os jogadores</option>';$("clube").hidden=true;$("json").value="";setMsg("");render()};
 $("fres").onchange=e=>{F.res=e.target.value;render()};
 $("fadv").oninput=e=>{F.adv=e.target.value;render()};
 $("fjog").onchange=e=>{F.jog=e.target.value;render()};
