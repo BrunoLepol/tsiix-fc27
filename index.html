@@ -794,9 +794,16 @@ window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(TABS
 let MODO="Amistoso",REPS=[];
 function grpKey(m,mode){if(!m.ts)return "0";const d=new Date(m.ts*1000),p=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+p(d.getMonth()+1)+(mode==="mes"?"":"-"+p(d.getDate()))}
 function grpLabel(k,mode){if(k==="0")return "Sem data";const [y,mo,da]=k.split("-").map(Number),d=new Date(y,mo-1,da||1);return mode==="mes"?d.toLocaleDateString("pt-BR",{month:"long",year:"numeric"}):d.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric"})}
+// Critério único de MVP para a tela e para o PDF.
+// Nota média (40%), MoM por jogo (30%) e participações em gols por jogo (30%).
+const mvpAvg=p=>p.j?p.n/p.j:0;
+const mvpScore=p=>40*(mvpAvg(p)/10)+30*Math.min(1,p.mom/Math.max(1,p.j))+30*Math.min(1,(p.g+p.a)/Math.max(1,p.j*1.5));
+const mvpEligible=ag=>ag.filter(p=>p.j>=3);
+const bestMvp=(players)=>players.slice().sort((a,b)=>mvpScore(b)-mvpScore(a)||mvpAvg(b)-mvpAvg(a)||a.nome.localeCompare(b.nome))[0]||null;
 function repData(G){
-  const c=r=>G.filter(m=>resOf(m)===r).length,n=G.length,gp=G.reduce((s,m)=>s+m.pro,0),gc=G.reduce((s,m)=>s+m.contra,0),pj=G.flatMap(m=>m.jog),S=k=>pj.reduce((s,p)=>s+p[k],0),ag=aggregate(G),aw=[];
-  const byPos=(t,ps)=>{const b=ag.filter(p=>ps.includes(posOf(p))).reduce((a,p)=>!a||p.n/p.j>a.n/a.j?p:a,null);if(b)aw.push([t,b.nome,"nota média "+(b.n/b.j).toFixed(1)])};
+  const c=r=>G.filter(m=>resOf(m)===r).length,n=G.length,gp=G.reduce((s,m)=>s+m.pro,0),gc=G.reduce((s,m)=>s+m.contra,0),pj=G.flatMap(m=>m.jog),S=k=>pj.reduce((s,p)=>s+p[k],0),ag=aggregate(G),eligible=mvpEligible(ag),aw=[];
+  const overall=bestMvp(eligible);if(overall)aw.push(["MVP da semana",overall.nome,"pontuação "+mvpScore(overall).toFixed(1)+"/100 | nota média "+mvpAvg(overall).toFixed(1)]);
+  const byPos=(t,ps)=>{const b=bestMvp(eligible.filter(p=>ps.includes(posOf(p))));if(b)aw.push([t,b.nome,"pontuação "+mvpScore(b).toFixed(1)+"/100 | nota média "+mvpAvg(b).toFixed(1)])};
   byPos("MVP da defesa",["Goleiro","Defensor"]);byPos("MVP do meio",["Meio-campo"]);byPos("MVP do ataque",["Atacante"]);
   const top=(t,f,u)=>{const b=ag.reduce((a,p)=>!a||f(p)>f(a)?p:a,null);if(b&&f(b)>0)aw.push([t,b.nome,f(b)+" "+u])};
   top("Artilheiro",p=>p.g,"gols");top("Garçom",p=>p.a,"assistências");top("Mais passes certos",p=>p.pm,"passes certos");
@@ -806,8 +813,11 @@ function repHTML(G,R,i){
   const T=[[R.v+"-"+R.e+"-"+R.d,"vitórias, empates, derrotas"],[R.gp+" x "+R.gc,"gols marcados x sofridos"],[R.apr+"%","aproveitamento"]];
   if(R.hasP)T.push([R.sh,"chutes"],[pct(R.pm,R.pa),"passes certos"],[pct(R.tm,R.ta),"desarmes certos"],[R.sv,"defesas"],[R.rc,"cartões vermelhos"]);
   const tm=m=>m.ts?new Date(m.ts*1000).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):"";
+  // Na tela de relatórios, o MVP da semana fica oculto.
+  // R.aw continua intacto para que a premiação siga disponível no PDF.
+  const screenAwards=R.aw.filter(([t])=>t!=="MVP da semana");
   return `<div class="kpis">${T.map(([a,b])=>`<div class="kpi"><div class="num">${a}</div><small>${b}</small></div>`).join("")}</div>`
-  +(R.aw.length?`<div class="awards">${R.aw.map(([t,n,d])=>`<div class="aw"><small>${t}</small><b>${esc(n)}</b><span>${esc(d)}</span></div>`).join("")}</div>`:"")
+  +(screenAwards.length?`<div class="awards">${screenAwards.map(([t,n,d])=>`<div class="aw"><small>${t}</small><b>${esc(n)}</b><span>${esc(d)}</span></div>`).join("")}</div>`:"")
   +(R.ag.length?`<div class="table"><table><thead><tr><th>Jogador</th><th>Pos.</th><th>Jogos</th><th>Gols</th><th>Assist.</th><th>Nota média</th><th>Passes</th><th>Desarmes</th><th>Melhor</th></tr></thead><tbody>${R.ag.map(p=>`<tr><td>${esc(p.nome)}</td><td>${esc(posOf(p))}</td><td>${p.j}</td><td>${p.g}</td><td>${p.a}</td><td>${(p.n/p.j).toFixed(1)}</td><td>${pct(p.pm,p.pa)}</td><td>${pct(p.tm,p.ta)}</td><td>${p.mom}</td></tr>`).join("")}</tbody></table></div>`:"")
   +`<div class="table" style="margin-top:12px"><table><thead><tr><th>Hora</th><th>Adversário</th><th>Placar</th><th></th></tr></thead><tbody>${G.map(m=>{const r=resOf(m);return `<tr><td>${tm(m)}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:20px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join("")}</tbody></table></div>`
   +`<div class="row"><button class="pri" data-rc="${i}">Copiar relatório para o Discord</button></div>`;
@@ -856,12 +866,9 @@ function buildPdf(ms,res,det,crest){
   const R=repData(ms),form=ms.map(resOf).join(" ");
   const posOrder=["Goleiro","Defensor","Meio-campo","Atacante"];
   const posNames={Goleiro:"GOLEIROS",Defensor:"DEFESA", "Meio-campo":"MEIO-CAMPO",Atacante:"ATAQUE"};
-  const avg=p=>p.j?p.n/p.j:0;
-  // MVP: 40% rating médio, 30% MoM por jogo e 30% participações em gols por jogo.
-  // Os componentes por jogo reduzem a vantagem de quem disputou mais partidas.
-  const mvpScore=p=>40*(avg(p)/10)+30*Math.min(1,p.mom/Math.max(1,p.j))+30*Math.min(1,(p.g+p.a)/Math.max(1,p.j*1.5));
-  const eligible=R.ag.filter(p=>p.j>=3);
-  const mvp=eligible.slice().sort((a,b)=>mvpScore(b)-mvpScore(a)||avg(b)-avg(a))[0]||null;
+  const avg=mvpAvg;
+  const eligible=mvpEligible(R.ag);
+  const mvp=bestMvp(eligible);
   const minTs=Math.min(...ms.filter(m=>m.ts).map(m=>m.ts));
   const maxTs=Math.max(...ms.filter(m=>m.ts).map(m=>m.ts));
   const span=Number.isFinite(minTs)&&Number.isFinite(maxTs)?Math.max(86400,maxTs-minTs+86400):0;
@@ -911,7 +918,7 @@ function buildPdf(ms,res,det,crest){
     const awardRows=[];
     if(mvp)awardRows.push(["MVP DA SEMANA",mvp.nome,"Nota "+avg(mvp).toFixed(1)+" | "+mvp.mom+" MoM | "+(mvp.g+mvp.a)+" participações em gols","Pontuação "+mvpScore(mvp).toFixed(1)+"/100"]);
     const byPosMvp=[ ["Melhor da defesa",["Goleiro","Defensor"]],["Melhor do meio",["Meio-campo"]],["Melhor do ataque",["Atacante"]] ];
-    byPosMvp.forEach(([label,positions])=>{const p=eligible.filter(x=>positions.includes(posOf(x))).sort((a,b)=>mvpScore(b)-mvpScore(a))[0];if(p)awardRows.push([label,p.nome,"Nota "+avg(p).toFixed(1)+" | "+p.mom+" MoM",(p.g+p.a)+" participações em gols"])});
+    byPosMvp.forEach(([label,positions])=>{const p=bestMvp(eligible.filter(x=>positions.includes(posOf(x))));if(p)awardRows.push([label,p.nome,"Nota "+avg(p).toFixed(1)+" | "+p.mom+" MoM",(p.g+p.a)+" participações em gols"])});
     const topStat=(label,key,unit)=>{const max=Math.max(0,...R.ag.map(p=>p[key]));if(max>0)awardRows.push([label,R.ag.filter(p=>p[key]===max).map(p=>p.nome).join(", "),max+" "+unit,""]);};
     topStat("Artilheiro","g","gols");topStat("Garçom","a","assistências");topStat("Mais passes certos","pm","passes");
     if(awardRows.length)tbl(["Reconhecimento","Jogador(es)","Desempenho","Pontuação / marca"],awardRows);
