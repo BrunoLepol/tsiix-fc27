@@ -813,8 +813,11 @@ function repHTML(G,R,i){
   const T=[[R.v+"-"+R.e+"-"+R.d,"vitórias, empates, derrotas"],[R.gp+" x "+R.gc,"gols marcados x sofridos"],[R.apr+"%","aproveitamento"]];
   if(R.hasP)T.push([R.sh,"chutes"],[pct(R.pm,R.pa),"passes certos"],[pct(R.tm,R.ta),"desarmes certos"],[R.sv,"defesas"],[R.rc,"cartões vermelhos"]);
   const tm=m=>m.ts?new Date(m.ts*1000).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):"";
+  // Na tela de relatórios, o MVP da semana fica oculto.
+  // R.aw continua intacto para que a premiação siga disponível no PDF.
+  const screenAwards=R.aw.filter(([t])=>t!=="MVP da semana");
   return `<div class="kpis">${T.map(([a,b])=>`<div class="kpi"><div class="num">${a}</div><small>${b}</small></div>`).join("")}</div>`
-  +(R.aw.length?`<div class="awards">${R.aw.map(([t,n,d])=>`<div class="aw"><small>${t}</small><b>${esc(n)}</b><span>${esc(d)}</span></div>`).join("")}</div>`:"")
+  +(screenAwards.length?`<div class="awards">${screenAwards.map(([t,n,d])=>`<div class="aw"><small>${t}</small><b>${esc(n)}</b><span>${esc(d)}</span></div>`).join("")}</div>`:"")
   +(R.ag.length?`<div class="table"><table><thead><tr><th>Jogador</th><th>Pos.</th><th>Jogos</th><th>Gols</th><th>Assist.</th><th>Nota média</th><th>Passes</th><th>Desarmes</th><th>Melhor</th></tr></thead><tbody>${R.ag.map(p=>`<tr><td>${esc(p.nome)}</td><td>${esc(posOf(p))}</td><td>${p.j}</td><td>${p.g}</td><td>${p.a}</td><td>${(p.n/p.j).toFixed(1)}</td><td>${pct(p.pm,p.pa)}</td><td>${pct(p.tm,p.ta)}</td><td>${p.mom}</td></tr>`).join("")}</tbody></table></div>`:"")
   +`<div class="table" style="margin-top:12px"><table><thead><tr><th>Hora</th><th>Adversário</th><th>Placar</th><th></th></tr></thead><tbody>${G.map(m=>{const r=resOf(m);return `<tr><td>${tm(m)}</td><td>${esc(m.adv)}</td><td class="num" style="font-size:20px">${m.pro} x ${m.contra}</td><td class="r ${r}">${RN[r]}</td></tr>`}).join("")}</tbody></table></div>`
   +`<div class="row"><button class="pri" data-rc="${i}">Copiar relatório para o Discord</button></div>`;
