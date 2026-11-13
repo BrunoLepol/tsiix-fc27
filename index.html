@@ -337,25 +337,6 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
 .tp .pf-note{margin-top:12px}
 
 
-
-/* Centro de desempenho — visão geral e gráficos de evolução */
-#reportOverview{margin:0 0 20px}
-#reportOverview .ov-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
-#reportOverview .ov-kpi,#reportOverview .ov-panel{min-width:0;border:1px solid #293b58;border-radius:12px;background:linear-gradient(150deg,#17243a,#101827);padding:14px}
-#reportOverview .ov-kpi small{display:block;color:#9fb2cf;font-size:12px}
-#reportOverview .ov-kpi b{display:block;margin-top:4px;font:800 clamp(24px,3vw,34px) "Barlow Condensed",sans-serif;color:#f7f9ff}
-#reportOverview .ov-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);gap:12px}
-#reportOverview .ov-panel h3{margin:0 0 12px;color:#dce8fb;font:700 14px Barlow,sans-serif;letter-spacing:.06em;text-transform:uppercase}
-#reportOverview .ov-chart{width:100%;height:auto;display:block;overflow:visible}
-#reportOverview .ov-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;color:#a9bad4;font-size:12px}
-#reportOverview .ov-legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
-#reportOverview .ov-rank{width:100%;border-collapse:collapse;font-size:13px}
-#reportOverview .ov-rank td{padding:8px 5px;border-bottom:1px solid #293b58}
-#reportOverview .ov-rank tr:last-child td{border-bottom:0}
-#reportOverview .ov-rank td:last-child{text-align:right;font-weight:800;color:#f0bd52}
-#reportOverview .ov-empty{color:#9fb2cf;font-size:13px;padding:8px 0}
-@media(max-width:760px){#reportOverview .ov-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}#reportOverview .ov-grid{grid-template-columns:minmax(0,1fr)}}
-
 /* =========================================================
    TSIIX — refinamento visual da área de relatórios
    Alterações exclusivamente visuais; cálculos e PDF preservados.
@@ -494,7 +475,6 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
   <section id="relatorios" data-tab="relatorios">
     <h2>Relatórios por data</h2>
     <div class="row"><select id="rgrp" aria-label="Agrupar relatórios"><option value="dia">Por dia</option><option value="mes">Por mês</option></select><span class="hint" id="rmsg" style="margin:0"></span></div>
-    <div id="reportOverview" aria-live="polite"></div>
     <textarea id="rtxt" rows="8" hidden readonly aria-label="Relatório para copiar"></textarea>
     <div id="replist"></div>
   </section>
@@ -582,7 +562,9 @@ header.top .bar{background:transparent;border-radius:0;flex:initial}
 
   <section id="comparar" data-tab="jogadores">
     <h2>Comparar jogadores</h2>
+    <p class="hint">Selecione uma posição e compare dois jogadores com base nas estatísticas das partidas importadas.</p>
     <div class="row">
+      <select id="cpos" aria-label="Filtrar por posição"><option value="">Todas as posições</option></select>
       <select id="ca" aria-label="Jogador A"></select>
       <select id="cb" aria-label="Jogador B"></select>
     </div>
@@ -901,29 +883,8 @@ function repText(r){
   if(R.hasP)L.push("Chutes "+R.sh+" | Passes certos "+pct(R.pm,R.pa)+" | Desarmes certos "+pct(R.tm,R.ta)+" | Defesas "+R.sv);
   return L.join("\n");
 }
-
-function renderReportOverview(){
-  const el=$("reportOverview");if(!el)return;
-  const ms=(STATE.real?STATE.matches:[]).slice().filter(m=>m.ts).sort((a,b)=>a.ts-b.ts);
-  if(!ms.length){el.innerHTML='<p class="ov-empty">Os indicadores e gráficos aparecerão quando houver partidas com data cadastrada.</p>';return}
-  const n=ms.length,v=ms.filter(m=>resOf(m)==="V").length,e=ms.filter(m=>resOf(m)==="E").length,d=ms.filter(m=>resOf(m)==="D").length;
-  const gf=ms.reduce((s,m)=>s+m.pro,0),ga=ms.reduce((s,m)=>s+m.contra,0),rate=Math.round((3*v+e)/(3*n)*100);
-  const W=640,H=210,L=34,R=12,T=14,B=30,innerW=W-L-R,innerH=H-T-B,max=Math.max(1,...ms.flatMap(m=>[m.pro,m.contra]));
-  const x=i=>L+(ms.length===1?innerW/2:i*innerW/(ms.length-1));
-  const y=value=>T+innerH-(value/max)*innerH;
-  const line=key=>ms.map((m,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(m[key]).toFixed(1)).join(" ");
-  let wins=0,points=ms.map((m,i)=>{wins+=resOf(m)==="V"?3:resOf(m)==="E"?1:0;return Math.round(wins/((i+1)*3)*100)});
-  const rateY=value=>T+innerH-(value/100)*innerH;
-  const rateLine=points.map((value,i)=>(i?"L":"M")+x(i).toFixed(1)+","+rateY(value).toFixed(1)).join(" ");
-  const ag=aggregate(ms).filter(p=>p.j>=3).sort((a,b)=>(b.n/b.j)-(a.n/a.j)||b.j-a.j||a.nome.localeCompare(b.nome)).slice(0,5);
-  const rank=ag.length?`<table class="ov-rank"><tbody>${ag.map((p,i)=>`<tr><td>${i+1}. ${esc(p.nome)}</td><td>${p.j} jogos</td><td>${(p.n/p.j).toFixed(1)}</td></tr>`).join("")}</tbody></table>`:'<p class="ov-empty">Ainda não há jogadores com três partidas para formar o ranking.</p>';
-  const labels=ms.length>1?`<text x="${L}" y="${H-7}" fill="#8fa4c2" font-size="10">1ª partida</text><text x="${W-R}" y="${H-7}" text-anchor="end" fill="#8fa4c2" font-size="10">Última partida</text>`:`<text x="${W/2}" y="${H-7}" text-anchor="middle" fill="#8fa4c2" font-size="10">Partida registrada</text>`;
-  el.innerHTML=`<div class="ov-kpis"><div class="ov-kpi"><small>Partidas analisadas</small><b>${n}</b></div><div class="ov-kpi"><small>Aproveitamento</small><b>${rate}%</b></div><div class="ov-kpi"><small>Gols marcados</small><b>${gf}</b></div><div class="ov-kpi"><small>Gols sofridos</small><b>${ga}</b></div></div><div class="ov-grid"><section class="ov-panel"><h3>Evolução de gols por partida</h3><svg class="ov-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de gols marcados e sofridos por partida">${[0,.25,.5,.75,1].map(f=>`<line x1="${L}" x2="${W-R}" y1="${T+innerH*f}" y2="${T+innerH*f}" stroke="#2b3c58" stroke-width="1"/>`).join("")}<polyline points="${ms.map((m,i)=>x(i)+','+y(m.pro)).join(' ')}" fill="none" stroke="#4da0ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${ms.map((m,i)=>x(i)+','+y(m.contra)).join(' ')}" fill="none" stroke="#e6ad3c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${ms.map((m,i)=>`<circle cx="${x(i)}" cy="${y(m.pro)}" r="3.5" fill="#4da0ff"/><circle cx="${x(i)}" cy="${y(m.contra)}" r="3.5" fill="#e6ad3c"/>`).join('')}${labels}</svg><div class="ov-legend"><span><i style="background:#4da0ff"></i>Gols marcados</span><span><i style="background:#e6ad3c"></i>Gols sofridos</span></div></section><section class="ov-panel"><h3>Ranking por nota média</h3>${rank}<p class="ov-empty">Critério: mínimo de 3 partidas; desempate por jogos disputados.</p></section><section class="ov-panel"><h3>Aproveitamento acumulado</h3><svg class="ov-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução do aproveitamento acumulado">${[0,25,50,75,100].map(v=>`<line x1="${L}" x2="${W-R}" y1="${rateY(v)}" y2="${rateY(v)}" stroke="#2b3c58"/><text x="${L-7}" y="${rateY(v)+3}" text-anchor="end" fill="#8fa4c2" font-size="10">${v}%</text>`).join('')}<polyline points="${rateLine}" fill="none" stroke="#35d39a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${points.map((v,i)=>`<circle cx="${x(i)}" cy="${rateY(v)}" r="3.5" fill="#35d39a"/>`).join('')}${labels}</svg><div class="ov-legend"><span><i style="background:#35d39a"></i>Aproveitamento acumulado (3 pontos por vitória)</span></div></section></div>`;
-}
-
 function renderReports(){
   const el=$("replist");
-  renderReportOverview();
   if(!STATE.real||!STATE.matches.length){el.innerHTML='<p class="hint">Nenhuma partida da modalidade "'+esc(MODO)+'" para mostrar. '+(EDIT?"Carregue e marque partidas na aba Admin.":"Ainda não há partidas publicadas.")+'</p>';REPS=[];return}
   const mode=$("rgrp").value,g={};
   STATE.matches.forEach(m=>{const k=grpKey(m,mode);(g[k]=g[k]||[]).push(m)});
@@ -1232,11 +1193,16 @@ async function saveMatchCorrection(m,el){
 }
 
 function renderCmp(){
-  const ms=filtered(),d=STATE.real?aggregate(ms).filter(p=>{const r=REG[String(p.nome||"").toLowerCase()];return !r||r.active!==false}):PLAYERS.map(p=>({nome:p.nome,j:p.jogos,g:p.gols,a:p.ast,n:p.nota*p.jogos,sh:0,pm:0,pa:0,tm:0,ta:0}));
-  const a=$("ca"),b=$("cb"),names=d.map(p=>p.nome),key=names.join("|");
+  const ms=filtered(),d=STATE.real?aggregate(ms).filter(p=>{const r=REG[String(p.nome||"").toLowerCase()];return !r||r.active!==false}):PLAYERS.map(p=>({nome:p.nome,j:p.jogos,g:p.gols,a:p.ast,n:p.nota*p.jogos,sh:0,pm:0,pa:0,tm:0,ta:0,mom:0,sv:0,min:0,rc:0,ps:{[p.pos]:p.jogos}}));
+  const posOf=p=>Object.entries(p.ps||{}).sort((x,y)=>y[1]-x[1])[0]?.[0]||"Outros";
+  const pf=$("cpos"),positions=[...new Set(d.map(posOf))].sort((x,y)=>x.localeCompare(y,"pt-BR"));
+  const oldPos=pf.value,positionKey=positions.join("|");
+  if(pf.dataset.k!==positionKey){pf.innerHTML='<option value="">Todas as posições</option>'+positions.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");pf.dataset.k=positionKey;pf.value=positions.includes(oldPos)?oldPos:""}
+  const visible=pf.value?d.filter(p=>posOf(p)===pf.value):d;
+  const a=$("ca"),b=$("cb"),names=visible.map(p=>p.nome),key=names.join("|");
   if(a.dataset.k!==key){const o=names.map(n=>`<option>${esc(n)}</option>`).join(""),va=a.value,vb=b.value;a.innerHTML=b.innerHTML=o;a.dataset.k=key;a.value=names.includes(va)?va:names[0]||"";b.value=names.includes(vb)&&vb!==a.value?vb:names[1]||names[0]||""}
-  const A=d.find(p=>p.nome===a.value),B=d.find(p=>p.nome===b.value);
-  if(!A||!B){$("cmp").innerHTML='<p class="hint">Carregue partidas com dados de jogadores para comparar.</p>';return}
+  const A=visible.find(p=>p.nome===a.value),B=visible.find(p=>p.nome===b.value);
+  if(!A||!B){$("cmp").innerHTML='<p class="hint">Não há jogadores suficientes nesta posição para comparar. Escolha outra posição ou importe mais partidas.</p>';return}
   const pct=(x,y)=>y?Math.round(x/y*100):null;
   const L=[["Jogos",A.j,B.j],["Gols",A.g,B.g],["Assistências",A.a,B.a],["Nota média",A.n/A.j,B.n/B.j,1],["Gols por jogo",A.g/A.j,B.g/B.j,1],["Chutes",A.sh,B.sh],["Passes certos (%)",pct(A.pm,A.pa),pct(B.pm,B.pa)],["Desarmes certos (%)",pct(A.tm,A.ta),pct(B.tm,B.ta)],["Melhor da partida",A.mom,B.mom],["Defesas",A.sv,B.sv],["Minutos jogados",A.min,B.min],["Cartões vermelhos",A.rc,B.rc]];
   const f=(v,dec)=>v==null||isNaN(v)?"—":dec?v.toFixed(1):Math.round(v);
@@ -1290,6 +1256,7 @@ $("fjog").onchange=e=>{F.jog=e.target.value;render()};
 function updLink(){const id=$("cid").value.trim();$("abrir").href="https://proclubs.ea.com/api/fc/clubs/matches?matchType="+($("tipo").value||"leagueMatch")+"&platform=common-gen5&clubIds="+encodeURIComponent(id)+"&maxResultCount=10";$("abrir2").href="https://proclubs.ea.com/api/fc/members/stats?platform=common-gen5&clubId="+encodeURIComponent(id)}
 $("matches").onclick=e=>{const t=e.target.closest("tr[data-i]");if(!t)return;SELM=CUR[+t.dataset.i];render();$("detalhe").scrollIntoView({block:"nearest"})};
 $("matches").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){const t=e.target.closest("tr[data-i]");if(t){e.preventDefault();t.click()}}};
+$("cpos").onchange=()=>{$("ca").dataset.k="";$("cb").dataset.k="";renderCmp()};
 $("ca").onchange=$("cb").onchange=renderCmp;
 $("cid").oninput=updLink;$("carregar2").onclick=()=>{try{const a=parseMembers($("json2").value.trim());SEASON=a;renderSeason(a);a.forEach(p=>{if(p.ovr)OVR[p.nome]=p.ovr});saveSeason();render();setMsg(a.length+" jogadores nos totais da temporada."+(a.some(p=>p.ovr)?"":" O JSON não trouxe o OVR dos jogadores."))}catch(e){setMsg(e instanceof SyntaxError?"Esse texto não é um JSON válido. Copie a página inteira.":e.message,true)}};
 $("minj").oninput=render;
